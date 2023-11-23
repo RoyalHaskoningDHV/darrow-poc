@@ -2,18 +2,13 @@ from twinn_ml_interface.interface import ModelInterfaceV4
 from twinn_ml_interface.objectmodels import MetaDataLogger
 
 from darrow_poc.models.modelinterface import POCAnomaly
+from darrow_poc.mocks import ConfigurationMock
 import unittest
 
 import logging
 
 
 logging.basicConfig(level=logging.DEBUG)
-
-class ConfigurationMock:
-    target_name = "test:test"
-
-    def get_units(*args, **kwargs):
-        return None
 
 
 class TestModelFollowsInterface(unittest.TestCase):
