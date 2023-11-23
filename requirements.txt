@@ -8,3 +8,5 @@ sam
 scikit-learn
 scipy
 statsmodels
+seaborn
+pytest

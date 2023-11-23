@@ -15,12 +15,12 @@ from twinn_ml_interface.objectmodels import (
     InputData,
     MetaDataLogger,
     ModelCategory,
-    PredictionType,
     RelativeType,
     Tag,
     UnitTagTemplate,
     UnitTag,
     Unit,
+    WindowViability,
 )
 
 from .models import (
@@ -132,7 +132,7 @@ class POCAnomaly:
             logger (MetaDataLogger): A MetaDataLogger object to write logs to MLflow later.
             tenant_config (dict[str, Any]): Tenant specific configuration.
         """
-        stahmodel = cls(configuration.target_name, logger)
+        stahmodel = cls(configuration.target_name)
         stahmodel.configuration = configuration
         stahmodel.logger = logger
         return stahmodel
@@ -152,14 +152,14 @@ class POCAnomaly:
     def validate_input_data(
         self,
         input_data: InputData,
-    ) -> dict[PredictionType, tuple[bool, str | None]]:
+    ) -> WindowViability:
         """Validate if input data is usable for training.
 
         Args:
             data (InputData): Training data.
 
         Returns:
-            dict[PredictionType, tuple[bool, str | None]]: For each PredictionType you get
+            WindowViability: For each PredictionType you get
                 bool: Whether the data can be used for training. Default always true.
                 str: Additional information about the window.
         """
