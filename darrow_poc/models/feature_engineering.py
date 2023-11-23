@@ -1,6 +1,7 @@
 import logging
 from dataclasses import dataclass
 from typing import Any, Callable, List, Optional, Sequence, Tuple, Union, cast
+import warnings
 
 import pytz
 import pandas as pd
@@ -12,13 +13,15 @@ from sklearn.impute import IterativeImputer
 
 logger = logging.getLogger(__name__)
 
+warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
+
 
 def create_target(data, horizons, differencing=False):
     y = pd.DataFrame()
     for horizon in horizons:
-        y[f'discharge_Stah_lead_{horizon}'] = data['discharge_stah'].shift(-horizon)
+        y[f'discharge_Stah_lead_{horizon}'] = data['discharge_stah:disc'].shift(-horizon)
     if differencing:
-        y = y.sub(data['discharge_stah'], axis=0)
+        y = y.sub(data['discharge_stah:disc'], axis=0)
     return y
 
 def build_lag_features(s, lags=[12, 24]):
@@ -80,7 +83,7 @@ def engineer_features_for_imputation(
     """
     discharge_columns = [c for c in df.columns if 'discharge' in c]
     precip_columns = [c for c in df.columns if 'precip' in c]
-    precip_column_selection = ['precip_benedenroer', 'precip_worm']
+    precip_column_selection = ['precip_benedenroer:prec', 'precip_worm:prec']
 
     df_discharge = build_lag_features(df.loc[:, discharge_columns], lags=lags_discharge)
     df_precip = build_lag_features(df.loc[:, precip_column_selection], lags=lags_precip)
@@ -277,7 +280,7 @@ class DischargeEngineering(base.BaseEstimator, base.TransformerMixin):
         if len(self.precip_cols) > 0:
             precip = X.loc[:, self.precip_cols]
             precip_sum = precip.mean(axis=1)
-            evap_hour = X.loc[:, 'evap'].divide(24)
+            evap_hour = X.loc[:, 'evap:evap'].divide(24)
 
             windows = [2, 4, 8, self.deficit_long_term_days]
             for deficit_window in windows:
@@ -302,8 +305,8 @@ class DischargeEngineering(base.BaseEstimator, base.TransformerMixin):
                 X_out.loc[:, f'{col}_lag_{lag}'] = X.loc[:, col].shift(lag).bfill()
 
         # more discharge statistics @ Stah over midterm intervals
-        if 'discharge_stah' in X.columns:
-            for col in ['stah']:
+        if 'discharge_stah:disc' in X.columns:
+            for col in ['stah:disc']:
                 for window in self.discharge_stats_range:
                     for rolltype in ['max', 'min', 'mean']:
                         feature = X.loc[:, 'discharge_' + col].rolling(window).agg(rolltype)

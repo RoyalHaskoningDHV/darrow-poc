@@ -1,6 +1,7 @@
-from .mocks import ConfigurationMock
+from .mocks import ConfigurationMock, ExecutorMock
 
 
 __all__ = [
-    "ConfigurationMock"
+    "ConfigurationMock",
+    "ExecutorMock",
 ]

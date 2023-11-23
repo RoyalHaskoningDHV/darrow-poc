@@ -1,7 +1,9 @@
 from __future__ import annotations
 from os import PathLike
+from pathlib import Path
 from typing import Callable
 
+import dill as pickle
 import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
@@ -233,22 +235,24 @@ class POCAnomaly:
     def dump(self, foldername: PathLike, filename: str) -> None:
         """
         Writes the following files:
-        * prefix.pkl
-        * prefix.h5
+        * filename.pkl
+        * filename.h5
         to the folder given by foldername.
 
         Args:
             foldername (PathLike): configurable folder name
             filename (str): name of the file
         """
+        with open(Path(foldername) / (filename + ".pkl"), "wb") as f:
+            pickle.dump(self, f)
         return None
 
     @classmethod
     def load(cls, foldername: PathLike, filename: str) -> Callable:
         """
         Reads the following files:
-        * prefix.pkl
-        * prefix.h5
+        * filename.pkl
+        * filename.h5
         from the folder given by foldername.
         Output is an entire instance of the fitted model that was saved
 
@@ -260,4 +264,7 @@ class POCAnomaly:
             Model class with everything (except data) contained within to call the
             `predict()` method
         """
-        ...
+        with open(Path(foldername) / (filename + ".pkl"), "rb") as f:
+            model = pickle.load(f)
+
+        return model

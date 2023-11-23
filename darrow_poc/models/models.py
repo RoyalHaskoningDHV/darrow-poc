@@ -201,14 +201,7 @@ def train_forecasting_models(
     validator,
     imputer,
     timestamp='2021-12-22T09.52.58',
-    missing_features=[
-        [''],
-        ['discharge_juelich', 'discharge_juelich_wl', 'discharge_linnich1', 'discharge_stah'],
-        ['discharge_herzogenrath2', 'discharge_juelich', 'discharge_juelich_wl', 'discharge_linnich1', 'discharge_stah'],
-        ['discharge_herzogenrath2', 'discharge_juelich', 'discharge_altenburg1', 'discharge_linnich1', 'discharge_stah'],
-        ['discharge_juelich', 'discharge_juelich_wl', 'discharge_herzogenrath1', 'discharge_herzogenrath2'],
-        ['discharge_linnich1', 'discharge_juelich_wl', 'discharge_randerath'],
-    ],
+    missing_features=[['']],
     testing=False,
     model_type: str = 'ridge',
     params={},
@@ -219,7 +212,7 @@ def train_forecasting_models(
     ----------
     train : pd.DataFrame
         Training data
-    validator : roer.models.anomaly_detection.ValidationModel
+    validator : darrow_poc.models.anomaly_detection.ValidationModel
         Anomaly detection class (trained already)
     imputer : sklearn.IterativeImputer
         Already trained iterative imputer instance
@@ -306,12 +299,12 @@ def train_forecasting_models(
             )
 
         # Cross validation
-        cv = KFold(4, shuffle=False)
+        cv = KFold(2, shuffle=False)
         scoring = get_scorer()
         model = RandomizedSearchCV(pipe_forecast,
                                    param_grid,
                                    cv=cv,
-                                   n_iter=40,
+                                   n_iter=2,
                                    scoring=scoring,
                                    refit='wmae',
                                    verbose=2,
