@@ -14,8 +14,9 @@ logging.basicConfig(level=logging.DEBUG)
 class TestModelFollowsInterface(unittest.TestCase):
 
     def test_model_follows_interface(self):
-        sm = POCAnomaly.initialize(ConfigurationMock(), MetaDataLogger())
-        assert isinstance(sm, ModelInterfaceV4)
+        pocanomaly = POCAnomaly.initialize(ConfigurationMock(), MetaDataLogger())
+        assert isinstance(pocanomaly, ModelInterfaceV4)
+
 
 if __name__ == "__main__":
     unittest.main()
