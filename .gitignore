@@ -163,4 +163,4 @@ cython_debug/
 *.csv
 *.pkl
 
-output/*
+output/*.parquet
