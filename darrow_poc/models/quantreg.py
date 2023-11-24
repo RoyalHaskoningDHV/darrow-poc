@@ -54,7 +54,7 @@ class LinearQuantileRegressor(BaseEstimator, RegressorMixin):
         quantiles: list = [0.05, 0.95],
         tol: float = 1e-3,
         max_iter: int = 1000,
-        fit_intercept: bool = True
+        fit_intercept: bool = True,
     ):
         self.quantiles = quantiles
         self.tol = tol
@@ -82,10 +82,7 @@ class LinearQuantileRegressor(BaseEstimator, RegressorMixin):
         elif type(self.quantiles) is list:
             self.q_ = self.quantiles
         else:
-            raise TypeError(
-                f"Invalid type, quantile {self.quantiles} "
-                f"should be a float or list of floats"
-            )
+            raise TypeError(f"Invalid type, quantile {self.quantiles} " f"should be a float or list of floats")
         self.prediction_cols = [f"predict_q_{q}" for q in self.quantiles]
         models_ = [self._fit_single_model(X, y, q) for q in self.quantiles]
         self.coef_ = [m[0] for m in models_]
@@ -106,10 +103,7 @@ class LinearQuantileRegressor(BaseEstimator, RegressorMixin):
         Default score function. Returns the tilted loss
         """
         y_pred = self.predict(X)
-        scores = [
-            tilted_loss(y_true=y, y_pred=y_pred[f"predict_q_{q}"], quantile=q)
-            for q in self.quantiles
-        ]
+        scores = [tilted_loss(y_true=y, y_pred=y_pred[f"predict_q_{q}"], quantile=q) for q in self.quantiles]
         score = np.mean(scores)
         return score
 

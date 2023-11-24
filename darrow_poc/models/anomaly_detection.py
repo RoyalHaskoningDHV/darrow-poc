@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import Union
 
-from pathlib import Path
 from scipy.stats import norm
 from sklearn import base
 from sklearn.compose import ColumnTransformer
@@ -13,7 +12,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import r2_score
 
-from .feature_engineering import BuildRollingFeatures
+from sam.feature_engineering import BuildRollingFeatures
 
 
 def engineer_steps(channel: str, channels: list):
@@ -31,8 +30,8 @@ def engineer_steps(channel: str, channels: list):
     list
         List of feature engineering steps to perform
     """
-    other_discharge_channels = [c for c in channels if (c != channel) & ('discharge' in c)]
-    precipitation_channels = [c for c in channels if 'precip' in c]
+    other_discharge_channels = [c for c in channels if (c != channel) & ("discharge" in c)]
+    precipitation_channels = [c for c in channels if "precip" in c]
 
     discharge_step = (
         "lag_features_discharge_channels",
@@ -91,7 +90,7 @@ def get_outliers(
     outliers : np.ndarray
         Array with true false values denoting outliers with true
     """
-    if type(y_true) == pd.core.series.Series:
+    if isinstance(y_true, pd.core.series.Series):
         y_true = y_true.values
 
     predict_ahead = 0
@@ -104,9 +103,7 @@ def get_outliers(
     outliers = (y_true > valid_high) | (y_true < valid_low)
     outliers = outliers.astype(int)
     k = np.ones(outlier_window)
-    outliers = (
-        np.convolve(outliers, k, mode="full")[: len(outliers)] >= outlier_limit
-    ).astype(bool)
+    outliers = (np.convolve(outliers, k, mode="full")[: len(outliers)] >= outlier_limit).astype(bool)
 
     return outliers
 
@@ -115,7 +112,7 @@ def get_outlier_consensus(
     y_true: pd.Series,
     pred: pd.DataFrame,
     target_channel: str,
-    n_consensus: Union[int, str] = 'all',
+    n_consensus: Union[int, str] = "all",
     outlier_min_q: int = 3,
     outlier_window: int = 1,
     outlier_limit: int = 1,
@@ -164,7 +161,7 @@ def get_outlier_consensus(
             )
         )
 
-    if n_consensus == 'all':
+    if n_consensus == "all":
         return np.array(outliers).all(axis=0)
     return np.array(outliers).sum(axis=0) >= n_consensus
 
@@ -172,7 +169,7 @@ def get_outlier_consensus(
 def get_anomalies(
     pred: dict,
     df_test: pd.DataFrame,
-    n_consensus: Union[int, str] = 'all',
+    n_consensus: Union[int, str] = "all",
     outlier_window: int = 3,
     outlier_limit: int = 3,
 ):
@@ -181,7 +178,7 @@ def get_anomalies(
     Parameters
     ----------
     pred : dict
-        The `pred` key in the output dictionary from the `predict` method of the 
+        The `pred` key in the output dictionary from the `predict` method of the
         `ValidationModel` class.
         It contains predictions for each target channel for sub-models with single
         channels left out (pred[<target_channel>][<left_out_channel>])
@@ -202,14 +199,8 @@ def get_anomalies(
         The outliers for each target channel.
     """
     anomalies = {}
-    for target_channel in [c for c in df_test.columns if 'discharge' in c]:
-
+    for target_channel in [c for c in df_test.columns if "discharge" in c]:
         y_true = df_test.loc[:, target_channel]
-        df_corr = df_test.corr(method='spearman')
-        left_out_channel = df_corr.index[np.argsort(df_corr.loc[:, target_channel])][-2]
-
-        print(target_channel, ' --- ', left_out_channel)
-
         outliers = get_outlier_consensus(
             y_true,
             pred,
@@ -249,13 +240,13 @@ def replace_anomalies_with_nan(anomalies: dict, df: pd.DataFrame):
 def standardize_prediction_column_names(y_hat):
     return y_hat.rename(
         columns={
-            'predict_q_0.9986501019683699': 'predict_lead_0_q_0.9986501019683699', 
-            'predict_q_0.9772498680518208': 'predict_lead_0_q_0.9772498680518208',
-            'predict_q_0.8413447460685429': 'predict_lead_0_q_0.8413447460685429',
-            'predict_q_0.15865525393145707': 'predict_lead_0_q_0.15865525393145707',
-            'predict_q_0.02275013194817921': 'predict_lead_0_q_0.02275013194817921',
-            'predict_q_0.0013498980316301035': 'predict_lead_0_q_0.0013498980316301035',
-            'predict_q_0.5': 'predict_lead_0_mean',  # Note that we actually have the median here
+            "predict_q_0.9986501019683699": "predict_lead_0_q_0.9986501019683699",
+            "predict_q_0.9772498680518208": "predict_lead_0_q_0.9772498680518208",
+            "predict_q_0.8413447460685429": "predict_lead_0_q_0.8413447460685429",
+            "predict_q_0.15865525393145707": "predict_lead_0_q_0.15865525393145707",
+            "predict_q_0.02275013194817921": "predict_lead_0_q_0.02275013194817921",
+            "predict_q_0.0013498980316301035": "predict_lead_0_q_0.0013498980316301035",
+            "predict_q_0.5": "predict_lead_0_mean",  # Note that we actually have the median here
         }
     )
 
@@ -297,11 +288,11 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
     def __init__(
         self,
         df: pd.DataFrame,
-        model_type: str = 'lasso',
+        model_type: str = "lasso",
         training_end_date: str = None,
         epochs: int = 2,
         n_features: int = 5,
-        n_consensus: Union[int, str] = 'all',
+        n_consensus: Union[int, str] = "all",
         outlier_window: int = 3,
         outlier_limit: int = 3,
         use_precipitation_features: bool = False,
@@ -309,7 +300,7 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
     ):
         self.df = df.copy()
         self.model_type = model_type
-        self.discharge_channels = [c for c in self.df.columns if 'discharge' in c]
+        self.discharge_channels = [c for c in self.df.columns if "discharge" in c]
         self.training_end_date = self._get_training_end_date(training_end_date)
         self.epochs = epochs
         self.n_features = n_features
@@ -339,7 +330,7 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
             return self.df.index.max()
         return training_end_date
 
-    def _train_test_split(self, channel: str, training_end_date: str = '2017-12-31 23:59:59'):
+    def _train_test_split(self, channel: str, training_end_date: str = "2017-12-31 23:59:59"):
         """Split data into train and test sets based on datetime cutoff.
         Everything before the cutoff is training data, everything after is
         test data.
@@ -367,13 +358,12 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
         return X_train, y_train, X_test, y_test
 
     def show_train_test_split(self, training_end_date=None):
-        """Convenience method for visualizing training and test set
-        """
+        """Convenience method for visualizing training and test set"""
         if training_end_date is None:
             training_end_date = self.training_end_date
 
-        plt.plot(self.df.loc[:training_end_date, :], color='b')
-        plt.plot(self.df.loc[training_end_date:, :], color='r')
+        plt.plot(self.df.loc[:training_end_date, :], color="b")
+        plt.plot(self.df.loc[training_end_date:, :], color="r")
 
     def _get_feature_channels(self, channel: str):
         """Get MLP model for particular channel
@@ -389,11 +379,11 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
             List of strings denoting the channels to use for feature engineering when
             predicting `channel`
         """
-        discharge = self.df.loc[:self.training_end_date, self.discharge_channels]
+        discharge = self.df.loc[: self.training_end_date, self.discharge_channels]
 
-        correlations = discharge.corr('spearman').loc[channel]
+        correlations = discharge.corr("spearman").loc[channel]
         sort_ids = np.argsort(correlations.values)
-        feature_channels = correlations.index[sort_ids][-1 - self.n_features: -1]
+        feature_channels = correlations.index[sort_ids][-1 - self.n_features : -1]
 
         return feature_channels
 
@@ -411,16 +401,13 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
         feature_channels: list
             List of channel names to use for feature engineering
         """
-        engineer = ColumnTransformer(
-            engineer_steps(channel, feature_channels),
-            remainder="drop"
-        )
+        engineer = ColumnTransformer(engineer_steps(channel, feature_channels), remainder="drop")
         scaler = StandardScaler()
         pipe = Pipeline(
             [
                 ("columns", engineer),
                 ("scaler", scaler),
-                ("imputer", SimpleImputer(missing_values=np.nan, strategy='mean')),
+                ("imputer", SimpleImputer(missing_values=np.nan, strategy="mean")),
             ]
         )
         return pipe
@@ -491,10 +478,12 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
             ],
         )
 
-        estimator = Pipeline([
-            ("preprocessor", self._get_pipeline(channel, feature_channels)),
-            ("regressor", regressor),
-        ])
+        estimator = Pipeline(
+            [
+                ("preprocessor", self._get_pipeline(channel, feature_channels)),
+                ("regressor", regressor),
+            ]
+        )
 
         return estimator
 
@@ -512,14 +501,13 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
         -------
         estimator : sklearn Model
         """
-        if self.model_type == 'mlp':
+        if self.model_type == "mlp":
             return self._get_mlp_model(channel, feature_channels)
-        elif self.model_type == 'lasso':
+        elif self.model_type == "lasso":
             return self._get_lasso_model(channel, feature_channels)
         else:
             raise NotImplementedError(
-                f"model_type {self.model_type} not implemented."
-                "Choose `mlp` or `lasso` instead."
+                f"model_type {self.model_type} not implemented." "Choose `mlp` or `lasso` instead."
             )
 
     def _combine_results(self, num_obs: dict, r2: dict):
@@ -538,11 +526,13 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
         results : pd.DataFrame
             Contains number of observations for train and test + r2 scores
         """
-        results = pd.DataFrame({
-            'num_test_data': [num_obs[f'test_{channel}'] for channel in self.discharge_channels],
-            'num_train_data': [num_obs[f'train_{channel}'] for channel in self.discharge_channels],
-            'r2': [v for v in r2.values()],
-        })
+        results = pd.DataFrame(
+            {
+                "num_test_data": [num_obs[f"test_{channel}"] for channel in self.discharge_channels],
+                "num_train_data": [num_obs[f"train_{channel}"] for channel in self.discharge_channels],
+                "r2": [v for v in r2.values()],
+            }
+        )
         results.index = self.discharge_channels
 
         return results
@@ -560,7 +550,6 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
         model = {}
 
         for target_channel in self.discharge_channels:
-
             model[target_channel] = {}
 
             X_train = X.copy().reset_index(drop=True)
@@ -574,21 +563,20 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
                 feature_channel_subset = [c for c in feature_channels if c != leave_out_feature]
 
                 print(
-                    f'\nTraining model for channel {target_channel}.'
-                    f'\n We use the following feature channels: {feature_channel_subset}'
+                    f"\nTraining model for channel {target_channel}."
+                    f"\n We use the following feature channels: {feature_channel_subset}"
                 )
 
                 # Fit model
-                model[target_channel][leave_out_feature] = self._get_model(
-                    target_channel, feature_channel_subset
-                )
+                model[target_channel][leave_out_feature] = self._get_model(target_channel, feature_channel_subset)
                 model[target_channel][leave_out_feature].fit(X_train, y_train)
 
                 # HACK: Remove loss function, because we cannot pickle it
                 # It is not needed for makeing predictions, so this is somewhat ok,
                 # Otherwise we have to reconstruct it.
-                if hasattr(model[target_channel][leave_out_feature], 'model_'):
+                if hasattr(model[target_channel][leave_out_feature], "model_"):
                     from tensorflow.keras.optimizers import Adam
+
                     model[target_channel][leave_out_feature].model_.compile(
                         optimizer=Adam(learning_rate=self.learning_rate),
                         loss=None,
@@ -615,18 +603,15 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
         model, num_obs, pred, r2 = {}, {}, {}, {}
 
         for target_channel in self.discharge_channels:
-
             model[target_channel], pred[target_channel], r2[target_channel] = {}, {}, {}
 
             # Get training and test data
-            X_train, y_train, X_test, y_test = self._train_test_split(
-                target_channel, self.training_end_date
-            )
+            X_train, y_train, X_test, y_test = self._train_test_split(target_channel, self.training_end_date)
 
             num_train = np.sum(~y_train.isna())
             num_test = np.sum(~y_test.isna())
-            num_obs[f'train_{target_channel}'] = num_train
-            num_obs[f'test_{target_channel}'] = num_test
+            num_obs[f"train_{target_channel}"] = num_train
+            num_obs[f"test_{target_channel}"] = num_test
 
             # Determine which channels to use for feature engineering
             feature_channels = self._get_feature_channels(target_channel)
@@ -635,17 +620,18 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
                 feature_channel_subset = [c for c in feature_channels if c != leave_out_feature]
 
                 print(
-                    f'\nTraining model for channel {target_channel} in time period from '
-                    f'{X_train.index[0]} to {self.training_end_date}.'
-                    f'\n We use the following feature channels: {feature_channel_subset}'
+                    f"\nTraining model for channel {target_channel} in time period from "
+                    f"{X_train.index[0]} to {self.training_end_date}."
+                    f"\n We use the following feature channels: {feature_channel_subset}"
                 )
 
                 # Fit model
-                model[target_channel][leave_out_feature] = self._get_model(
-                    target_channel, feature_channel_subset
-                )
+                model[target_channel][leave_out_feature] = self._get_model(target_channel, feature_channel_subset)
                 model[target_channel][leave_out_feature].fit(X_train, y_train)
-                if hasattr(model[target_channel][leave_out_feature], 'model_'):
+
+                if hasattr(model[target_channel][leave_out_feature], "model_"):
+                    from tensorflow.keras.optimizers import Adam
+
                     model[target_channel][leave_out_feature].model_.compile(  # HACK
                         optimizer=Adam(learning_rate=self.learning_rate),
                         loss=None,
@@ -656,22 +642,17 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
                     model[target_channel][leave_out_feature].predict(X_test)
                 )
 
-                if type(pred[target_channel][leave_out_feature]) == pd.DataFrame:
+                if isinstance(pred[target_channel][leave_out_feature], pd.DataFrame):
                     y_hat = pred[target_channel][leave_out_feature].loc[:, "predict_lead_0_mean"]
                 else:
                     y_hat = pred[target_channel][leave_out_feature]
                 finite_selection = ~y_test.isna() & ~np.isnan(y_hat)
                 if finite_selection.sum() > 0:
-                    r2[target_channel][leave_out_feature] = r2_score(
-                        y_test[finite_selection], y_hat[finite_selection]
-                    )
+                    r2[target_channel][leave_out_feature] = r2_score(y_test[finite_selection], y_hat[finite_selection])
                 else:
                     r2[target_channel][leave_out_feature] = np.nan
 
-                print(
-                    'Coefficient of determination (variance explained) = '
-                    f'{r2[target_channel][leave_out_feature]}'
-                )
+                print("Coefficient of determination (variance explained) = " f"{r2[target_channel][leave_out_feature]}")
 
         self.model = model
         self.num_obs = num_obs
@@ -695,7 +676,6 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
         """
         pred, r2 = {}, {}
         for target_channel in self.discharge_channels:
-
             pred[target_channel], r2[target_channel] = {}, {}
             X_test = X.loc[:, [c for c in X.columns if c != target_channel]].reset_index(drop=True)
             y_test = X.loc[:, target_channel].reset_index(drop=True)
@@ -715,21 +695,16 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
                     y_hat = pred[target_channel][leave_out_feature]
                 finite_selection = ~y_test.isna() & ~np.isnan(y_hat)
                 if finite_selection.sum() > 0:
-                    r2[target_channel][leave_out_feature] = r2_score(
-                        y_test[finite_selection], y_hat[finite_selection]
-                    )
+                    r2[target_channel][leave_out_feature] = r2_score(y_test[finite_selection], y_hat[finite_selection])
                 else:
                     r2[target_channel][leave_out_feature] = np.nan
 
                 print(
-                    f'\nPredicting for channel {target_channel} in time period from '
-                    f'{X_test.index[0]} to {X_test.index[-1]}.'
-                    f'\n We use the following feature channels: {feature_channel_subset}'
+                    f"\nPredicting for channel {target_channel} in time period from "
+                    f"{X_test.index[0]} to {X_test.index[-1]}."
+                    f"\n We use the following feature channels: {feature_channel_subset}"
                 )
-                print(
-                    'Coefficient of determination (variance explained) = '
-                    f'{r2[target_channel][leave_out_feature]}'
-                )
+                print("Coefficient of determination (variance explained) = " f"{r2[target_channel][leave_out_feature]}")
 
         return pred, r2
 
@@ -789,7 +764,6 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
 
         channels = results.index
         for i, channel in enumerate(channels):
-
             j = i // 4
             ip = i % 4
 
@@ -805,12 +779,9 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
             finite_selection = ~y_test.isna() & ~np.isnan(y_hat)
 
             df_plot = pd.DataFrame(
-                {
-                    'True values': y_test.loc[finite_selection],
-                    'Predictions': y_hat[finite_selection]
-                }
+                {"True values": y_test.loc[finite_selection], "Predictions": y_hat[finite_selection]}
             )
-            sns.regplot(ax=axs[ip, j], data=df_plot, x='True values', y='Predictions', ci=True)
-            axs[ip, j].set_xlabel('True values')
-            axs[ip, j].set_ylabel('Predictions')
+            sns.regplot(ax=axs[ip, j], data=df_plot, x="True values", y="Predictions", ci=True)
+            axs[ip, j].set_xlabel("True values")
+            axs[ip, j].set_ylabel("Predictions")
             axs[ip, j].set_title(f'{channel}; R2={results["r2"].iloc[i]: .2f}', size=10)

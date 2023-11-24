@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 from darrow_poc.models.modelinterface import POCAnomaly
@@ -5,17 +6,15 @@ from darrow_poc.mocks import ExecutorMock
 
 import unittest
 
-import logging
+
+logging.basicConfig(level=logging.INFO)
+logging.getLogger("sam").setLevel(logging.WARNING)
 
 
-BASE_DIR = Path("~/projects/darrow/darrow-poc/")
-
-
-logging.basicConfig(level=logging.DEBUG)
+BASE_DIR = Path(__file__).parent.parent
 
 
 class TestModelWithLocalExecutor(unittest.TestCase):
-
     def test_model_with_local_executor(self):
         config = {
             "model": POCAnomaly,

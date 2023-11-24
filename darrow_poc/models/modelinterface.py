@@ -4,9 +4,7 @@ from pathlib import Path
 from typing import Callable
 
 import dill as pickle
-import numpy as np
 import pandas as pd
-from sklearn.pipeline import Pipeline
 
 from twinn_ml_interface.interface import ModelInterfaceV4
 from twinn_ml_interface.objectmodels import (
@@ -25,23 +23,15 @@ from twinn_ml_interface.objectmodels import (
     WindowViability,
 )
 
-from .models import (
-    train_validator,
-    train_imputer,
-    train_forecasting_models,
-)
-from .feature_engineering import (
-    SelectOriginalFeaturesTransformer,
-)
+from .models import train_validator
 
 
 class POCAnomaly:
-
     model_type_name: str = "pocanomaly"
     # Model category is based on the output of the model.
     model_category: ModelCategory = ModelCategory.ANOMALY
     # Number between (-inf, inf) indicating the model performance.
-    performance_value: float | None = None
+    performance_value: float | None = 999
     # Features used to train the model. If not supplied, equal to get_data_config_template().
     base_features: dict[DataLevel, list[UnitTag]] | None = None
     # This is only needed when get_target_template returns UnitTagTemplate
@@ -70,9 +60,7 @@ class POCAnomaly:
         return [
             DataLabelConfigTemplate(
                 data_level=DataLevel.SENSOR,
-                unit_tag_templates=[
-                    UnitTagTemplate([RelativeType.CHILDREN], [Tag("DISCHARGE")])
-                ],
+                unit_tag_templates=[UnitTagTemplate([RelativeType.CHILDREN], [Tag("DISCHARGE")])],
                 availability_level=AvailabilityLevel.available_until_now,
             ),
             DataLabelConfigTemplate(
@@ -107,7 +95,8 @@ class POCAnomaly:
         """Request some units from the hierarchy in a dictionary.
 
         Returns:
-            dict[str, list[RelativeType]]: An identifier for the units to get, and their relative path from the target unit.
+            dict[str, list[RelativeType]]: An identifier for the units to get,
+                and their relative path from the target unit.
         """
         return {}
 
@@ -181,15 +170,11 @@ class POCAnomaly:
         validator, timestamp_validator = train_validator(
             train,
             n_features=5,
-            model_type='lasso',
+            model_type="lasso",
             testing=False,
             use_precipitation_features=False,
         )
-        imputer, timestamp_imputer = train_imputer(train)
-        full_models = train_forecasting_models(
-            train, validator, imputer, timestamp=timestamp_validator, model_type='ridge'
-        )
-        self._full_models = full_models
+        self._model = validator
 
     def predict(self, input_data: InputData, **kwargs) -> list[pd.DataFrame]:
         """Run a prediction with a trained model.
@@ -200,37 +185,11 @@ class POCAnomaly:
         Returns:
             list[pd.DataFrame]: List of dataframes with predictions
         """
-        model = self._full_models
+        model = self._model
         X = pd.concat(input_data.values(), axis=1)
+        X_removed_anomalies = model.predict(X)
 
-        discharge_removed_anomalies = model.named_steps['validator'].transform(X.iloc[-24:, :])
-        X_removed_anomalies = X.copy()
-        X_removed_anomalies = pd.concat(
-            [X_removed_anomalies.iloc[:-24, :], discharge_removed_anomalies]
-        )
-
-        # transform all input data
-        imputer = Pipeline([
-            ('ift', model.named_steps['imputer'].named_steps['ift']),
-            ('it', model.named_steps['imputer'].named_steps['it']),
-            ('soft', SelectOriginalFeaturesTransformer(
-                X_removed_anomalies
-            )),  # important to use input data
-        ])
-        preproc_pipeline = Pipeline([
-            ('validator', model.named_steps['validator']),
-            ('imputer', imputer),
-            ('forecaster', model.named_steps['estimator'][:-1])
-        ])
-        X_transformed = preproc_pipeline.transform(X_removed_anomalies)
-
-        # select last complete sample
-        X_transformed = X_transformed[~np.isnan(X_transformed).any(axis=1)]
-
-        # create predictions
-        pred = model.named_steps['estimator'][-1].predict(X_transformed[-1:, :]).flatten()
-
-        return pred  # [pd.Dataframe({'A': [1, 2, 3]})]
+        return X_removed_anomalies
 
     def dump(self, foldername: PathLike, filename: str) -> None:
         """
