@@ -6,13 +6,13 @@ from typing import Callable
 import dill as pickle
 import pandas as pd
 
+from twinn_ml_interface.input_data import InputData
 from twinn_ml_interface.interface import ModelInterfaceV4
 from twinn_ml_interface.objectmodels import (
     AvailabilityLevel,
     Configuration,
     DataLabelConfigTemplate,
     DataLevel,
-    InputData,
     MetaDataLogger,
     ModelCategory,
     RelativeType,

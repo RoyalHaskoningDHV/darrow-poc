@@ -2,7 +2,8 @@ import pandas as pd
 
 from darrow_poc.models import POCAnomaly
 
-from twinn_ml_interface.objectmodels import MetaDataLogger, Configuration, InputData
+from twinn_ml_interface.input_data import InputData
+from twinn_ml_interface.objectmodels import MetaDataLogger, Configuration
 from twinn_ml_interface.interface import ModelInterfaceV4
 
 
