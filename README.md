@@ -1,5 +1,5 @@
-# twinn-ml-example
-Documentation and code for onboarding a timeseries machine learning model to the `twinn-ml-platform`.
+# DARROW-POC
+Documentation and code for onboarding a timeseries machine learning model to the `darrow-ml-platform`.
 
 ## Data models
 The data is represented by a __rooted tree__ that mimics the real world (usually physical) relationships inherent in the data. This is easiest to understand with an example:
@@ -12,8 +12,13 @@ This tree is not just represented in the figure, but also in the code used by th
 
 When creating your own `ModelInterfaceV4` compliant model for onboarding onto the platform, keeping this structure in mind is very useful. Below we will go into more depth about how the `ModelInterfaceV4` relates to this rooted tree.
 
-## `ModelInterfaceV4`: A contract to ensure succesful onboarding
-The `ModelInterfaceV4` is a python _Protocol_. That means, it specifies exactly what methods need to be defined, which parameters need to be inputted and what needs to be returned by a class in order to be a Protocol of type `ModelInterfaceV4`. Unlike a _Base class_, it does not allow for inheritance. Because of this it also does not allow an `__init__()` method. Instead, it is more a recipe to follow.
+## `ModelInterfaceV4`: A contract between models and infrastructure
+The `ModelInterfaceV4` is a python _Protocol_. That means, it specifies exactly what methods or attributes need to be defined, which parameters need to be inputted and what needs to be returned by a class in order to be a Protocol of type `ModelInterfaceV4`. Unlike a _Base class_, it does not allow for inheritance. Because of this it also does not allow an `__init__()` method. Instead, it is more a recipe to follow.
+
+To verify if a class follows the contract an `isinstance` check of the form `isinstance(myclass, myprotocol)` can be performed. For `ModelInterfaceV4`, we are using a modified version of `Protocol`, called `AnnotationProtocol` from the [`annotation-protocol` package](https://github.com/RoyalHaskoningDHV/annotation-protocol). It basically allows for more thorough `isinstance` checks, making all the necessary comparisons. An example implementation for how to test `ModelInterfaceV4` compliance can be found in `tests/test_inteface.py`.
+
+## Proof of concept / example model
+This repository contains an example model adhering to `ModelInterfaceV4`. It is an anomaly detection model that takes sensor data as input and replaced anomalies with `np.nan`. Of course, the purpose of the machine learning models here is not important. Instead, we aim to show how a machine learning model can be onboarded onto the `darrow-ml-platform` (or at least prepared for onboarding by complying to the data contract).
 
 ## How `ModelInterfaceV4` relates to the __rooted tree__
 When adapting your models to `ModelInterfaceV4` you will come across a lot of custom classes and Enums that in some way relate to the __rooted tree__ data model. Let us have a closer look at each of them:

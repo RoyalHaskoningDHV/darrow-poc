@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from darrow_poc.models.modelinterface import POCAnomaly
+from darrow_poc.models.poc import POCAnomaly
 from darrow_poc.mocks import ExecutorMock
 
 import unittest

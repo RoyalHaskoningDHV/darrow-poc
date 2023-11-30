@@ -1,7 +1,7 @@
 from twinn_ml_interface.interface import ModelInterfaceV4
 from twinn_ml_interface.objectmodels import MetaDataLogger
 
-from darrow_poc.models.modelinterface import POCAnomaly
+from darrow_poc.models.poc import POCAnomaly
 from darrow_poc.mocks import ConfigurationMock
 import unittest
 

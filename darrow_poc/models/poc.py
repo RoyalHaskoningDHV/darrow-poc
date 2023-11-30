@@ -23,7 +23,7 @@ from twinn_ml_interface.objectmodels import (
     WindowViability,
 )
 
-from .models import train_validator
+from .anomaly_detection import train_validator
 
 
 class POCAnomaly:
