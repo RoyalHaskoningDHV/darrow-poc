@@ -18,7 +18,9 @@ The `ModelInterfaceV4` is a python _Protocol_. That means, it specifies exactly 
 To verify if a class follows the contract an `isinstance` check of the form `isinstance(myclass, myprotocol)` can be performed. For `ModelInterfaceV4`, we are using a modified version of `Protocol`, called `AnnotationProtocol` from the [`annotation-protocol` package](https://github.com/RoyalHaskoningDHV/annotation-protocol). It basically allows for more thorough `isinstance` checks, making all the necessary comparisons. An example implementation for how to test `ModelInterfaceV4` compliance can be found in `tests/test_inteface.py`.
 
 ## Proof of concept / example model
-This repository contains an example model adhering to `ModelInterfaceV4`. It is an anomaly detection model that takes sensor data as input and replaced anomalies with `np.nan`. Of course, the purpose of the machine learning models here is not important. Instead, we aim to show how a machine learning model can be onboarded onto the `darrow-ml-platform` (or at least prepared for onboarding by complying to the data contract).
+This repository contains an example model called `POCAnomaly` (in `models/poc.py`) adhering to `ModelInterfaceV4`. It is an anomaly detection model that takes sensor data as input and replaced anomalies with `np.nan`. Of course, the purpose of the machine learning models here is not important. Instead, we aim to show how a machine learning model can be onboarded onto the `darrow-ml-platform` (or at least prepared for onboarding by complying to the data contract).
+
+We also included a local _Executor_ of the model in `mocks.mocks.py`, which mimicks how a real executor would execute model training or predicting on the `darrow-ml-platform` infrastructure.
 
 ## How `ModelInterfaceV4` relates to the __rooted tree__
 When adapting your models to `ModelInterfaceV4` you will come across a lot of custom classes and Enums that in some way relate to the __rooted tree__ data model. Let us have a closer look at each of them:

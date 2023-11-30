@@ -123,10 +123,10 @@ class POCAnomaly:
             logger (MetaDataLogger): A MetaDataLogger object to write logs to MLflow later.
             tenant_config (dict[str, Any]): Tenant specific configuration.
         """
-        stahmodel = cls(configuration.target_name)
-        stahmodel.configuration = configuration
-        stahmodel.logger = logger
-        return stahmodel
+        model = cls(configuration.target_name)
+        model.configuration = configuration
+        model.logger = logger
+        return model
 
     def preprocess(self, input_data: InputData) -> InputData:
         """Preprocess input data before training.

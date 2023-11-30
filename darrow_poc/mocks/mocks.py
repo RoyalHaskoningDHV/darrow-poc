@@ -7,7 +7,6 @@ from twinn_ml_interface.objectmodels import MetaDataLogger, Configuration
 from twinn_ml_interface.interface import ModelInterfaceV4
 
 
-# TODO (Steffen): Maybe missing info, test
 CONFIG = {
     "model": POCAnomaly,
     "data_path": "/my/path/data/data.parquet",
@@ -25,22 +24,22 @@ class ConfigurationMock:
         return None
 
 
-# TODO: Add methods where we access the model attributes, like `model_category`
 class ExecutorMock:
     metadata_logger = MetaDataLogger()
 
     def __init__(self, config: dict = CONFIG):
         self.config = config
 
-    def _test_model_attributes(self, model_class):
+    def _test_model_attributes(self):
         # The isinstance check with the annotation protocol already does this,
         # but just to be super clear that the actual exectutors expect these
-        return True
-        assert hasattr(self, "model_type_name"), "'model_type_name' attribute is missing!"
-        assert hasattr(self, "model_category"), "'model_category' attribute is missing!"
-        assert hasattr(self, "performance_value"), "'performance_value' attribute is missing!"
-        assert hasattr(self, "base_features"), "'base_features' attribute is missing!"
-        assert hasattr(self, "target"), "'target' attribute is missing!"
+        # TODO: Do they? At initialization already?! Not convinced...
+        model_class = self.config["model"]
+        assert hasattr(model_class, "model_type_name"), "'model_type_name' attribute is missing!"
+        assert hasattr(model_class, "model_category"), "'model_category' attribute is missing!"
+        assert hasattr(model_class, "performance_value"), "'performance_value' attribute is missing!"
+        assert hasattr(model_class, "base_features"), "'base_features' attribute is missing!"
+        assert hasattr(model_class, "target"), "'target' attribute is missing!"
 
     def init_train(self, str) -> tuple[ModelInterfaceV4, Configuration]:
         model_class = self.config["model"]
@@ -72,7 +71,6 @@ class ExecutorMock:
 
     def run_train_flow(self):
         model_class, config_api = self.init_train(self.config)
-        self._test_model_attributes(model_class)
         model = model_class.initialize(config_api, self.metadata_logger)
 
         input_data = self.get_training_data(model, config_api)
