@@ -41,7 +41,7 @@ class ExecutorMock:
         assert hasattr(model_class, "base_features"), "'base_features' attribute is missing!"
         assert hasattr(model_class, "target"), "'target' attribute is missing!"
 
-    def init_train(self, str) -> tuple[ModelInterfaceV4, Configuration]:
+    def _init_train(self, str) -> tuple[ModelInterfaceV4, Configuration]:
         model_class = self.config["model"]
         config_api = ConfigurationMock()
         return model_class, config_api
@@ -70,7 +70,7 @@ class ExecutorMock:
         self.postprocess_model_results(model=model)
 
     def run_train_flow(self):
-        model_class, config_api = self.init_train(self.config)
+        model_class, config_api = self._init_train(self.config)
         model = model_class.initialize(config_api, self.metadata_logger)
 
         input_data = self.get_training_data(model, config_api)

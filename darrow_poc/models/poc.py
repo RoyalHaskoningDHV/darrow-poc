@@ -23,7 +23,7 @@ from twinn_ml_interface.objectmodels import (
     WindowViability,
 )
 
-from .anomaly_detection import train_validator
+from .anomaly_detection import ValidationModel
 
 
 class POCAnomaly:
@@ -52,11 +52,26 @@ class POCAnomaly:
     @staticmethod
     def get_data_config_template() -> list[DataLabelConfigTemplate] | list[UnitTag]:
         """The specification of data needed to train and predict with the model.
+        
+        NOTE:
+        Using DataLabelConfigTemplate is more complicated, but allows refering to relative relationships
+        between units (e.g. selecting all children of the target). Specifying UnitTags directly is simpler,
+        but requires you to know the exact units necessary for the model.
 
         Result:
             list[DataLabelConfigTemplate] | list[UnitTag]: The data needed to train and predict with the model,
                 either as template or as list of literals.
         """
+        return [
+            UnitTag.from_string("altenburg1:disc"),
+            UnitTag.from_string("eschweiler:disc"),
+            UnitTag.from_string("herzogenrath1:disc"),
+            UnitTag.from_string("juelich:disc"),
+            UnitTag.from_string("stah:disc"),
+            UnitTag.from_string("evap:evap"),
+            UnitTag.from_string("middenroer:prec"),
+            UnitTag.from_string("urft:prec"),
+        ]
         return [
             DataLabelConfigTemplate(
                 data_level=DataLevel.SENSOR,
@@ -161,19 +176,23 @@ class POCAnomaly:
 
         Args:
             input_data (InputData): Preprocessed and validated training data.
+            NOTE: You need to handle train/test splits yourself
 
         Returns:
             dict[str, Any] | None: Optionally some logs collected during training.
         """
-        # Currently not dividing into train and test sets to speed things up
         train = pd.concat(input_data.values(), axis=1)
-        validator, timestamp_validator = train_validator(
+        validator = ValidationModel(
             train,
-            n_features=5,
             model_type="lasso",
-            testing=False,
+            n_features=5,
             use_precipitation_features=False,
+            training_end_date="2010-01-04 00:00:00",
         )
+        _, num_obs, _, r2 = validator.fit_and_evaluate()
+        self.logger.log_params(validator.flatten_output(r2, "r2"))  # This will be logged to mlflow
+        self.logger.log_params({f"samples_{k}": v for k, v in num_obs.items()})
+
         self._model = validator
 
     def predict(self, input_data: InputData, **kwargs) -> list[pd.DataFrame]:
@@ -204,6 +223,7 @@ class POCAnomaly:
         """
         with open(Path(foldername) / (filename + ".pkl"), "wb") as f:
             pickle.dump(self, f)
+
         return None
 
     @classmethod

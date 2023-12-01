@@ -662,6 +662,13 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
 
         return model, num_obs, pred, r2
 
+    def flatten_output(self, output: dict[str, dict], name: str) -> dict[str, str]:
+        return {
+            f"{name}_target_{outer_key}_missing_feature_{inner_key}": f"{inner_value}"
+            for outer_key, inner_dict in output.items()
+            for inner_key, inner_value in inner_dict.items()
+        }
+
     def predict_all(
         self,
         X: pd.DataFrame,
