@@ -10,13 +10,11 @@ import pandas as pd
 from twinn_ml_interface.input_data import InputData
 from twinn_ml_interface.interface import ModelInterfaceV4
 from twinn_ml_interface.objectmodels import (
-    AvailabilityLevel,
     Configuration,
     DataLabelConfigTemplate,
     DataLevel,
     MetaDataLogger,
     ModelCategory,
-    RelativeType,
     Tag,
     UnitTagTemplate,
     UnitTag,
@@ -28,7 +26,6 @@ from .anomaly_detection import ValidationModel, get_anomalies
 
 
 class POCAnomaly:
-    
     model_type_name: str = "pocanomaly"
     # Model category is based on the output of the model.
     model_category: ModelCategory = ModelCategory.ANOMALY
@@ -52,7 +49,7 @@ class POCAnomaly:
     @staticmethod
     def get_data_config_template() -> list[DataLabelConfigTemplate] | list[UnitTag]:
         """The specification of data needed to train and predict with the model.
-        
+
         NOTE:
         Using DataLabelConfigTemplate is more complicated, but allows refering to relative relationships
         between units (e.g. selecting all children of the target). Specifying UnitTags directly is simpler,

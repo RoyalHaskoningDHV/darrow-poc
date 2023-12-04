@@ -1,8 +1,5 @@
-from datetime import datetime
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 from typing import Union
 
 from scipy.stats import norm
@@ -480,7 +477,7 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
 
     def fit_and_evaluate(self, target_channel: str):
         """Fit ML model for each channel and evaluate performance on test set.
-        
+
         Parameters
         ----------
         target_channel: str
@@ -582,7 +579,6 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
         feature_channels = self._get_feature_channels(target_channel)
 
         for leave_out_feature in feature_channels:
-
             pred[target_channel][leave_out_feature] = standardize_prediction_column_names(
                 self.model[target_channel][leave_out_feature].predict(X_test)
             )
