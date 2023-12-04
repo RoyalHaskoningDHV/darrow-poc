@@ -1,5 +1,5 @@
 # DARROW-POC
-Documentation and code for onboarding a timeseries machine learning model to the `darrow-ml-platform`. You can use the example model and mock executors as a starting point for onboarding your own models (in principle the mock executor is not needed for this, but it gives a general idea of how the model is executed for training or predicting in the infrastructure).
+Documentation and code for onboarding a timeseries machine learning model to the `darrow-ml-platform`. You can use the example model as a starting point for onboarding your own models.
 
 ## Hierarchy data model
 The data hierarchy is represented by a __rooted tree__ that mimics the real world (usually physical) relationships inherent in the data. This is easiest to understand with an example:
@@ -13,16 +13,16 @@ This tree is not just represented in the figure, but also in the code used by th
 You will not need to create this tree yourself, this should be decided together with the consortium partners. Nevertheless, when creating your own `ModelInterfaceV4` compliant model for onboarding onto the platform, keeping this structure in mind is useful. Below we will go into more depth about how the `ModelInterfaceV4` relates to this rooted tree.
 
 ## `ModelInterfaceV4`: A contract between models and infrastructure
-The `ModelInterfaceV4` is a python _Protocol_. That means, it specifies exactly what methods or attributes need to be defined, which parameters need to be inputted and what needs to be returned by methods of a class in order for the class to be a Protocol of type `ModelInterfaceV4`. Unlike a _Base class_, it does not allow for inheritance. Because of this it also does not have an `__init__()` method. You can think of it as a recipe to follow.
+`ModelInterfaceV4` is a python _Protocol_. That means, it specifies exactly what methods or attributes need to be defined, which parameters need to be inputted and what needs to be returned by methods of a class. Unlike a _Base class_, it does not allow for inheritance. Because of this it also does not have an `__init__()` method. You can think of it as a recipe to follow.
 
 To verify if a class follows the contract an `isinstance` check of the form `isinstance(myclass, myprotocol)` can be performed. For `ModelInterfaceV4`, we are using a modified version of `Protocol`, called `AnnotationProtocol` from the [`annotation-protocol` package](https://github.com/RoyalHaskoningDHV/annotation-protocol). It allows for more thorough `isinstance` checks, making all the necessary comparisons. An example implementation for how to test `ModelInterfaceV4` compliance can be found in `tests/test_inteface.py`.
 
 ## Proof of concept / example model
 This repository contains an example model called `POCAnomaly` (in `models/poc.py`) adhering to `ModelInterfaceV4`. It is an anomaly detection model that takes sensor data as input and replaces anomalies with `np.nan`. Of course, the purpose of the machine learning model here is not important. Instead, we aim to show how a machine learning model can be onboarded onto the `darrow-ml-platform` (or at least prepared for onboarding by complying to the data contract).
 
-We also included a local _Executor_ of the model in `mocks/mocks.py`, which mimicks how a real executor would execute model training or predicting on the `darrow-ml-platform` infrastructure. It is a lot simpler, but should give a decent idea of what happens to the model during execution of either training or predicting.
+We also included a local _Executor_ of the model in `mocks/mocks.py`, which mimicks how a real executor would execute model training or predicting on the `darrow-ml-platform` infrastructure.
 
-## How `ModelInterfaceV4` relates to the __rooted tree__
+## How `ModelInterfaceV4` relates to the hierarchy
 While the `ModelInterfaceV4` protocol is not terribly complex, it contains a number of custom `types` and `Enums`, which often relate to the __rooted tree__ data model and might take some getting used to. Consider the `Node` object from the `objectmodels.hierarchy` module:
 
 ```python
@@ -33,7 +33,7 @@ class Node:
     children: list[Node] | None = None
 ```
 
-It has a value, which is of type `Unit`, a parent, which is also a `Node` (or `None`), and children Nodes. These nodes are the building blocks for the __rooted_tree__. Let's investigate the `Unit` class:
+It has a value, which is of type `Unit`, a parent, which is also a `Node` (or `None`), and children Nodes. These nodes are the building blocks for the hierarchy. Let's investigate the `Unit` class:
 
 ```python
 @dataclass
@@ -66,7 +66,7 @@ Unit(
 )
 ```
 
-While you do not have to define any tree structure yourself it is still useful to have an idea about these classes, since we have to define a number of related ones when onboarding our model to `ModelInterfaceV4`. Let's look at that next.
+While you do not have to define any tree structure yourself it is still useful to have an idea about these classes, since we have to define a number of related ones when onboarding our model to `ModelInterfaceV4`.
 
 ## Deep dive into `ModelInterfaceV4`
 Let's have a look at what we need to define to make our model `ModelInterfaceV4` compliant. For illustration purposes let's just use the proof of concept model from this repository. We want to onboard an anomaly detection model, defined in `models.anomaly_detection`. But before we get to that we should have a quick look at our data.
@@ -77,7 +77,7 @@ This is an illustration of our __rooted_tree__ hierarchy. In this case we do not
 ![data_model_poc](images/rooted_tree_poc.png)
 
 ### Data
-The data for this proof of concept looks as follows, where `altenburg1` is one of the station names (`unit_code`), which has a sensor that measures water `discharge` (`tag`). There are multiple of these stations, plus two rainfall stations with sensors of type `precipitation` and one evaporation station with a sensor of type `evaporation`. Each datapoint needs to have both `ID` and `TYPE` specified, even if all sensors have the same `TYPE`. Here, stations end up being the `ID` and sensor types end up being the `TYPE`.
+The data for this proof of concept looks as follows, where `altenburg1` is one of the station names (`unit_code`), which has a sensor that measures water `discharge` (this is a timeseries `tag`). There are multiple of these stations, plus two rainfall stations with sensors of type `precipitation` and one evaporation station with a sensor of type `evaporation`. Each datapoint needs to have both `ID` and `TYPE` specified, even if all sensors have the same `TYPE`. Here, stations end up being the `ID` and sensor types end up being the `TYPE`.
 
 | TIME                      | ID         | VALUE    | TYPE      |
 |---------------------------|------------|----------|-----------|
@@ -90,7 +90,7 @@ The data above is following the `SAM` long-format, which is also how the data is
 
 #### Methods you need to write an implementation for
 
-All methods in `ModelInterfaceV4` need to be present for our model class to be compliant with the data contract. However, if we do not want to use a particular method, we can have it do nothing. Some methods, however do have to be implemented and do something - let's look at those first.
+All methods in `ModelInterfaceV4` need to be present for our model class to be compliant with the data contract. However, if we do not want to use a particular method, we can have it do nothing. Some methods, however do have to be implemented return a particular output - let's look at those first.
 
 ```python
 @staticmethod
@@ -206,7 +206,7 @@ def load(cls, foldername: PathLike, filename: str) -> Callable:
 
 #### Methods you need to have, but do not need to implement
 
-In principle, you can use the exact implementations given below if you do not want to implement them. If you do, `preprocess` and `validate_input_data` should be fairly self-explanatory. `get_train_window_finder_config_template` is useful when you want to tweak how a training window is chosen when (re-)training your model in production. This configuration selects the data used for determining that window. TODO: explain with an example
+In principle, you can use the exact implementations given below if you do not want to add your own functionality. If you do, `preprocess` and `validate_input_data` should be fairly self-explanatory. `get_train_window_finder_config_template` is useful when you want to tweak how a training window is chosen when (re-)training your model in production. This configuration selects the data used for determining that window. TODO: explain with an example
 
 ```python
 @staticmethod
@@ -237,7 +237,7 @@ class POCAnomaly(ModelInterfaceV4):
     target: UnitTag | None = None
 ```
 
-`model_type_name` is simply the name of our model and can be any string (TODO is that true?). `model_category` has to be one of the possible levels of the `ModelCategory` Enum. The last two entries are optional and we assign default values as `None`.
+`model_type_name` is simply the name of our model and can be any string (TODO is that true?). `model_category` has to be one of the possible levels of the `ModelCategory` Enum. The last two entries are optional and we assign default values as `None`. In our example we do not need them.
 
 ### Testing compliance with the data contract
 
