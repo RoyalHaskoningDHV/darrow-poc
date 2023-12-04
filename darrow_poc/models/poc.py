@@ -28,6 +28,7 @@ from .anomaly_detection import ValidationModel, get_anomalies
 
 
 class POCAnomaly:
+    
     model_type_name: str = "pocanomaly"
     # Model category is based on the output of the model.
     model_category: ModelCategory = ModelCategory.ANOMALY
@@ -70,20 +71,6 @@ class POCAnomaly:
             UnitTag.from_string("evap:evap"),
             UnitTag.from_string("middenroer:prec"),
             UnitTag.from_string("urft:prec"),
-        ]
-        return [
-            DataLabelConfigTemplate(
-                data_level=DataLevel.SENSOR,
-                unit_tag_templates=[UnitTagTemplate([RelativeType.CHILDREN], [Tag("DISCHARGE")])],
-                availability_level=AvailabilityLevel.available_until_now,
-            ),
-            DataLabelConfigTemplate(
-                data_level=DataLevel.WEATHER,
-                unit_tag_templates=[
-                    UnitTagTemplate([RelativeType.CHILDREN], [Tag("PRECIPITATION"), Tag("EVAPORATION")])
-                ],
-                availability_level=AvailabilityLevel.available_until_now,
-            ),
         ]
 
     @staticmethod

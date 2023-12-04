@@ -119,7 +119,7 @@ def get_data_config_template() -> list[DataLabelConfigTemplate] | list[UnitTag]:
 
 There are again two possible implementations, either with `list[DataLabelConfigTemplate]` or `list[UnitTag]`. For illustration purposes we will show both. `UnitTag`, as used in the implementation above, we have already seen in the previous method. However, there is an alternative way to implement it, using the `from_string` class method, where we specify only the `unit_tag`, which is a combination between `unit_code` and `tag`, separated by a colon: `"{unit_code}:{tag}"`.
 
-In the below implementation we use `DataLabelConfigTemplate` instead of `UnitTag`. This implementation is more complex, but takes advantage of relative paths in our __rooted tree__. The first `DataLabelConfigTemplate` selects all units following the path `RelativeType.PARENTS --> RelativeType.CHILDREN` starting from the _target_ unit. We need two entries of `DataLabelConfigTemplate`, because the first has datalevel `SENSOR`, while the second has datalevel `WEATHER`. (TODO: Explain more about datalevels.)
+In the below implementation we use `DataLabelConfigTemplate` instead of `UnitTag`. This implementation is more complex, but takes advantage of relative paths in our __rooted tree__. The first `DataLabelConfigTemplate` selects all units following the path `RelativeType.PARENTS --> RelativeType.CHILDREN` starting from the _target_ unit. In this case, we select all units on the same level as the target. We need two entries of `DataLabelConfigTemplate`, because the first has datalevel `SENSOR`, while the second has datalevel `WEATHER`. (TODO: Explain more about datalevels.)
 
 ```python
 @staticmethod
@@ -128,14 +128,14 @@ def get_data_config_template() -> list[DataLabelConfigTemplate] | list[UnitTag]:
         DataLabelConfigTemplate(
             data_level=DataLevel.SENSOR,
             unit_tag_templates=[UnitTagTemplate([RelativeType.PARENT, RelativeType.CHILDREN], [Tag("DISCHARGE")])],
-            availability_level=AvailabilityLevel.available_until_now,
+            availability_level=AvailabilityLevel.FILTER_UNTIL_NOW,
         ),
         DataLabelConfigTemplate(
             data_level=DataLevel.WEATHER,
             unit_tag_templates=[
                 UnitTagTemplate([RelativeType.PARENT, RelativeType.CHILDREN], [Tag("PRECIPITATION"), Tag("EVAPORATION")])
             ],
-            availability_level=AvailabilityLevel.available_until_now,
+            availability_level=AvailabilityLevel.FILTER_UNTIL_NOW,
         ),
     ]
 ```
