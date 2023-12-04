@@ -37,7 +37,6 @@ class ExecutorMock:
         model_class = self.config["model"]
         assert hasattr(model_class, "model_type_name"), "'model_type_name' attribute is missing!"
         assert hasattr(model_class, "model_category"), "'model_category' attribute is missing!"
-        assert hasattr(model_class, "performance_value"), "'performance_value' attribute is missing!"
         assert hasattr(model_class, "base_features"), "'base_features' attribute is missing!"
         assert hasattr(model_class, "target"), "'target' attribute is missing!"
 

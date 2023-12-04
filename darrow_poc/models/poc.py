@@ -30,8 +30,6 @@ class POCAnomaly:
     model_type_name: str = "pocanomaly"
     # Model category is based on the output of the model.
     model_category: ModelCategory = ModelCategory.ANOMALY
-    # Number between (-inf, inf) indicating the model performance.
-    performance_value: float | None = 999
     # Features used to train the model. If not supplied, equal to get_data_config_template().
     base_features: dict[DataLevel, list[UnitTag]] | None = None
     # This is only needed when get_target_template returns UnitTagTemplate
@@ -47,7 +45,7 @@ class POCAnomaly:
         Returns:
             UnitTagTemplate | UnitTag: The unit tag of the model target, either as template or as UnitTag.
         """
-        return UnitTag(Unit("STAHROER", "DISCHARGE_STATION", True), Tag("DISCHARGE"))
+        return UnitTag(Unit("STAH", "DISCHARGE_STATION", True), Tag("DISCHARGE"))
 
     @staticmethod
     def get_data_config_template() -> list[DataLabelConfigTemplate] | list[UnitTag]:
@@ -95,25 +93,6 @@ class POCAnomaly:
            UnitTagTemplate, UnitTag: The unit tag of the model's output, either as template or as literal.
         """
         return UnitTag(Unit("STAHROER", "DISCHARGE_STATION", True), Tag("DISCHARGE_FORECAST"))
-
-    @staticmethod
-    def get_unit_properties_template() -> list[Tag]:
-        """Unit properties to get from the units specified in data_config.
-
-        Returns:
-            list[Tag]: The tags to request.
-        """
-        return []
-
-    @staticmethod
-    def get_unit_hierarchy_template() -> dict[str, list[RelativeType]]:
-        """Request some units from the hierarchy in a dictionary.
-
-        Returns:
-            dict[str, list[RelativeType]]: An identifier for the units to get,
-                and their relative path from the target unit.
-        """
-        return {}
 
     @staticmethod
     def get_train_window_finder_config_template() -> list[DataLabelConfigTemplate] | None:
