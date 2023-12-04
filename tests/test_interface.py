@@ -14,7 +14,8 @@ logging.basicConfig(level=logging.DEBUG)
 class TestModelFollowsInterface(unittest.TestCase):
     def test_model_follows_interface(self):
         pocanomaly = POCAnomaly.initialize(ConfigurationMock(), MetaDataLogger())
-        assert isinstance(pocanomaly, ModelInterfaceV4)
+        if not isinstance(pocanomaly, ModelInterfaceV4):
+            raise TypeError("`pocanomaly` does not conform to the Protocol `ModelInterfaceV4`.")
 
 
 if __name__ == "__main__":

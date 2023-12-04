@@ -18,7 +18,7 @@ CONFIG = {
 
 # TODO: Better config, with maybe some methods that return something?
 class ConfigurationMock:
-    target_name = "test:test"
+    target_name = "stah:discharge"
 
     def get_units(*args, **kwargs):
         return None

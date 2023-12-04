@@ -1,9 +1,10 @@
 from __future__ import annotations
 from os import PathLike
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 
 import dill as pickle
+import numpy as np
 import pandas as pd
 
 from twinn_ml_interface.input_data import InputData
@@ -23,7 +24,7 @@ from twinn_ml_interface.objectmodels import (
     WindowViability,
 )
 
-from .anomaly_detection import ValidationModel
+from .anomaly_detection import ValidationModel, get_anomalies
 
 
 class POCAnomaly:
@@ -150,15 +151,16 @@ class POCAnomaly:
         """
         return True, "Input data is valid."
 
-    def train(self, input_data: InputData, **kwargs) -> None:
+    def train(self, input_data: InputData, **kwargs) -> tuple[float, Any]:
         """Train a model.
 
         Args:
             input_data (InputData): Preprocessed and validated training data.
-            NOTE: You need to handle train/test splits yourself
 
         Returns:
-            dict[str, Any] | None: Optionally some logs collected during training.
+            float: Number between (-inf, inf) indicating the model performance
+            Any: Any other object that can be used for testing. This object will be ignored
+                by the infrastructure
         """
         train = pd.concat(input_data.values(), axis=1)
         validator = ValidationModel(
@@ -168,13 +170,15 @@ class POCAnomaly:
             use_precipitation_features=False,
             training_end_date="2010-01-04 00:00:00",
         )
-        _, num_obs, _, r2 = validator.fit_and_evaluate()
-        self.logger.log_params(validator.flatten_output(r2, "r2"))  # This will be logged to mlflow
+        _, num_obs, _, r2_by_target = validator.fit_and_evaluate(str(self.target))
+        r2_by_missing_sensor = validator.flatten_output(r2_by_target, "r2")
+        self.logger.log_params(r2_by_missing_sensor)  # This will be logged to mlflow
         self.logger.log_params({f"samples_{k}": v for k, v in num_obs.items()})
 
         self._model = validator
+        return np.mean(r2_by_missing_sensor.values()), None
 
-    def predict(self, input_data: InputData, **kwargs) -> list[pd.DataFrame]:
+    def predict(self, input_data: InputData, **kwargs) -> tuple[list[pd.DataFrame], Any]:
         """Run a prediction with a trained model.
 
         Args:
@@ -182,12 +186,16 @@ class POCAnomaly:
 
         Returns:
             list[pd.DataFrame]: List of dataframes with predictions
+            Any: Any other object that can be used for testing. This object will be ignored
+                by the infrastructure
         """
+        target_channel = str(self.target)
         model = self._model
         X = pd.concat(input_data.values(), axis=1)
-        X_removed_anomalies = model.predict(X)
+        predictions = model.predict(X, target_channel)
+        anomalies = get_anomalies(predictions, X, target_channel)
 
-        return X_removed_anomalies
+        return [pd.DataFrame({target_channel: anomalies})], None
 
     def dump(self, foldername: PathLike, filename: str) -> None:
         """

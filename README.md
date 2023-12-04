@@ -98,7 +98,7 @@ def get_target_template() -> UnitTagTemplate | UnitTag:
     return UnitTag(Unit("STAH", "DISCHARGE_STATION", True), Tag("DISCHARGE"))
 ```
 
-The method `get_target_template()` returns either a `UnitTagTemplate` or a `UnitTag` and thereby specifies the _target_ variable of our machine learning model. The latter is somewhat simpler and used in this example. We basically specify the connection between our target unit, which has `unit_code='STAH'` and `unit_type_code='DISCHARGE_STATION'`, and the timeseries or sensor data we would like to get, which is given by the `tag` `"DISCHARGE"`. The unit information can be seen also in the rooted tree above. The tag label refers to the `TYPE` used in the data (TODO: Is that true?).
+The method `get_target_template()` returns either a `UnitTagTemplate` or a `UnitTag` and thereby specifies the _target_ variable of our machine learning model. The latter is somewhat simpler and used in this example. We basically specify the connection between our target unit, which has `unit_code='STAH'` and `unit_type_code='DISCHARGE_STATION'`, and the timeseries or sensor data we would like to get, which is given by the `tag` `"DISCHARGE"`. The unit information can be seen also in the rooted tree above. The tag label refers to the `TYPE` used in the data (TODO: Is that true? - CHeck with Jesse! It seems that for a given Tag or TagType there is a mapping from specific keys (like Discharge) to values in the databse, which can be slightly different. I do not fully understand why this is needed, shouldn't the hierarchy be all you need to find all e.g. DISCHARGE units? Why can't we use that information to query from the db hierarchy? Is it because we need the db to get the hierarhcy in the first place?).
 
 Next let's look at the `get_data_config_template()` method, which determines what data to select for our machine learning model besides the target.
 
@@ -119,7 +119,7 @@ def get_data_config_template() -> list[DataLabelConfigTemplate] | list[UnitTag]:
 
 There are again two possible implementations, either with `list[DataLabelConfigTemplate]` or `list[UnitTag]`. For illustration purposes we will show both. `UnitTag`, as used in the implementation above, we have already seen in the previous method. However, there is an alternative way to implement it, using the `from_string` class method, where we specify only the `unit_tag`, which is a combination between `unit_code` and `tag`, separated by a colon: `"{unit_code}:{tag}"`.
 
-In the below implementation we use `DataLabelConfigTemplate` instead of `UnitTag`. This implementation is more complex, but takes advantage of relative paths in our __rooted tree__. The first `DataLabelConfigTemplate` selects all units following the path `RelativeType.CHILDREN` starting from the _target_ unit. TODO: ... I actually don't really know how this works properly...
+In the below implementation we use `DataLabelConfigTemplate` instead of `UnitTag`. This implementation is more complex, but takes advantage of relative paths in our __rooted tree__. The first `DataLabelConfigTemplate` selects all units following the path `RelativeType.PARENTS --> RelativeType.CHILDREN` starting from the _target_ unit. We need two entries of `DataLabelConfigTemplate`, because the first has datalevel `SENSOR`, while the second has datalevel `WEATHER`. (TODO: Explain more about datalevels.)
 
 ```python
 @staticmethod
@@ -127,13 +127,13 @@ def get_data_config_template() -> list[DataLabelConfigTemplate] | list[UnitTag]:
     return [
         DataLabelConfigTemplate(
             data_level=DataLevel.SENSOR,
-            unit_tag_templates=[UnitTagTemplate([RelativeType.CHILDREN], [Tag("DISCHARGE")])],
+            unit_tag_templates=[UnitTagTemplate([RelativeType.PARENT, RelativeType.CHILDREN], [Tag("DISCHARGE")])],
             availability_level=AvailabilityLevel.available_until_now,
         ),
         DataLabelConfigTemplate(
             data_level=DataLevel.WEATHER,
             unit_tag_templates=[
-                UnitTagTemplate([RelativeType.CHILDREN], [Tag("PRECIPITATION"), Tag("EVAPORATION")])
+                UnitTagTemplate([RelativeType.PARENT, RelativeType.CHILDREN], [Tag("PRECIPITATION"), Tag("EVAPORATION")])
             ],
             availability_level=AvailabilityLevel.available_until_now,
         ),
@@ -148,7 +148,7 @@ def get_result_template() -> UnitTagTemplate | UnitTag:
     return UnitTag(Unit("STAHROER", "DISCHARGE_STATION", True), Tag("DISCHARGE_FORECAST"))
 ```
 
-The next method is our way to initialize certain attributes and what would have been in the `__init__()`, if a __Protocol__ had one. We initialize the model and the corresponding `MetaDataLogger`. We advise you to re-use this code and log things with the logger object in other methods you implement. The `Configuration` is not something you need to worry about, since it will be taken care of by the infrastructure. (TODO: Is that true?)
+The next method is our way to initialize certain attributes and what would have been in the `__init__()`, if a __Protocol__ had one. We initialize the model and the corresponding `MetaDataLogger`. We advise you to re-use this code and log things with the logger object in other methods you implement. The `Configuration` is not something you need to worry about, since it will be taken care of by the infrastructure. Since you have it available, feel free to use it to query specific information (see the mock configuration in `mocks.mocks.py`).
 
 ```python
 @classmethod
@@ -206,21 +206,27 @@ def load(cls, foldername: PathLike, filename: str) -> Callable:
 
 #### Methods you need to have, but do not need to implement
 
-In principle, you can use the exact implementations given below if you do not want to add your own functionality. If you do, `preprocess` and `validate_input_data` should be fairly self-explanatory. `get_train_window_finder_config_template` is useful when you want to tweak how a training window is chosen when (re-)training your model in production. This configuration selects the data used for determining that window. TODO: explain with an example
+In principle, you can use the exact implementations given below if you do not want to add your own functionality. `get_train_window_finder_config_template` is used to specify a (sub-)set of data used to perform data validation with `validate_input_data`. Specifically, if implemented, the data specified in `get_train_window_finder_config_template` will be checked against the code in `validate_input_data` for a specific time period (this time period is a setting you have to provide to RHDHV, it is not directly accessible or changeable in the code). If the validation fails for that time period, the window is slid back in time by a certain amount and the validation is performed again. This sliding window approach is continued until validation passes or until a certain limit is reached. Again, the amount of sliding and the moment we stop trying another more historic time window are parameters that are not under your control via code. If you want to tweak them you need ot align with RHDHV.
+
+`preprocess` has its own implementation, because in the future we want to be able to perform separate actions for preprocessing compared to training or predicting, like for instance create a specific preprocessing log. Furthermore, it makes the structure of the model classes nicely modular, separating logic for preprocessing, training and predicting. Finally, preprocessing steps are likely repeated between validation, training and predictions - this part is up to you.
 
 ```python
 @staticmethod
 def get_train_window_finder_config_template() -> list[DataLabelConfigTemplate] | None:
     return None
 
-def preprocess(self, input_data: InputData) -> InputData:
-    return input_data
-
 def validate_input_data(
     self,
     input_data: InputData,
 ) -> WindowViability:
     return True, "Input data is valid."
+```
+
+At the moment we do not store intermediate steps (like storing preprocessed data or related logs), but in the future we might.
+
+```python
+def preprocess(self, input_data: InputData) -> InputData:
+    return input_data
 ```
 
 ### Model attributes
@@ -237,7 +243,7 @@ class POCAnomaly(ModelInterfaceV4):
     target: UnitTag | None = None
 ```
 
-`model_type_name` is simply the name of our model and can be any string (TODO is that true?). `model_category` has to be one of the possible levels of the `ModelCategory` Enum. The last two entries are optional and we assign default values as `None`. In our example we do not need them.
+`model_type_name` is simply the name of our model and can be any descriptive string. `model_category` has to be one of the possible levels of the `ModelCategory` Enum. The last two entries are optional and we assign default values as `None`. In our example we do not need them.
 
 ### Testing compliance with the data contract
 
