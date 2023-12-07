@@ -15,7 +15,9 @@ from twinn_ml_interface.objectmodels import (
     DataLevel,
     MetaDataLogger,
     ModelCategory,
+    PredictionType,
     Tag,
+    TrainWindowSizePriority,
     UnitTagTemplate,
     UnitTag,
     Unit,
@@ -39,10 +41,11 @@ class POCAnomaly:
 
     @staticmethod
     def get_target_template() -> UnitTagTemplate | UnitTag:
-        """Get the name of the target tag to train the model.
+        """Get the UnitTag that will be the target of the model.
 
         Returns:
-            UnitTagTemplate | UnitTag: The unit tag of the model target, either as template or as UnitTag.
+            UnitTagTemplate | UnitTag: The unit tag of the model target,
+            either as template or as literal.
         """
         return UnitTag(Unit("STAH", "DISCHARGE_STATION", True), Tag("DISCHARGE"))
 
@@ -80,12 +83,15 @@ class POCAnomaly:
         return UnitTag(Unit("STAHROER", "DISCHARGE_STATION", True), Tag("DISCHARGE_FORECAST"))
 
     @staticmethod
-    def get_train_window_finder_config_template() -> list[DataLabelConfigTemplate] | None:
+    def get_train_window_finder_config_template() -> (
+        tuple[list[DataLabelConfigTemplate], TrainWindowSizePriority] | None
+    ):
         """The config for running the train window finder.
 
         Returns:
-            list[DataLabelConfigTemplate] | None: a template for getting the tags needed to run the train window
-                finder. Defaults to None, then no train window finder will be used.
+            list[DataLabelConfigTemplate] | None: a template for getting the tags needed to run
+                the train window finder. Defaults to None, then no train window finder will be
+                used.
         """
         return None
 
@@ -133,7 +139,7 @@ class POCAnomaly:
                 bool: Whether the data can be used for training. Default always true.
                 str: Additional information about the window.
         """
-        return True, "Input data is valid."
+        return {PredictionType.ML: (True, None)}
 
     def train(self, input_data: InputData, **kwargs) -> tuple[float, Any]:
         """Train a model.

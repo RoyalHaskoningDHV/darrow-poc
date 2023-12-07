@@ -212,14 +212,16 @@ In principle, you can use the exact implementations given below if you do not wa
 
 ```python
 @staticmethod
-def get_train_window_finder_config_template() -> list[DataLabelConfigTemplate] | None:
+def get_train_window_finder_config_template() -> (
+    tuple[list[DataLabelConfigTemplate], TrainWindowSizePriority] | None
+):
     return None
 
 def validate_input_data(
     self,
     input_data: InputData,
 ) -> WindowViability:
-    return True, "Input data is valid."
+    return {PredictionType.ML: (True, None)}
 ```
 
 At the moment we do not store intermediate steps (like storing preprocessed data or related logs), but in the future we might.
