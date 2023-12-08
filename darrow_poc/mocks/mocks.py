@@ -26,20 +26,21 @@ CONFIG = {
 
 class ConfigurationMock(Configuration):
     """Use to get information from hierarchy (rooted tree) and tenant.
-    
+
     Not that important in this mock setting. We only need the `target_name`.
     The rest is shown here as well for completeness. Not something you need
     to implement, but something you can use.
     """
+
     target_name = "stah:discharge"
-    
+
     def tenant(self) -> dict[str, Any]:
-        return 
-    
+        return
+
     def tenant_config(self) -> dict[str, Any]:
         """Get and cache the tenant_config."""
         return None
-    
+
     def get_unit_properties(self, unit_name: str) -> dict[str, Any] | None:
         """Retrieve the property of a certain unit.
 
@@ -76,15 +77,17 @@ class ConfigurationMock(Configuration):
         """
         return None
 
+
 class ExecutorMock:
     """A mock executor, that mimicks some of the behaviour of a real executor.
-    
+
     An executor is responsible for running a machine learning model during training
     or predicting based on a `ModelInterfaceV4` compliant class in the `darrow-ml-platform`.
-    
+
     This mock executor performs both training and predicting, but only locally. Not all
     aspects of a real executor are mocked, but the basic logic flow should be the same.
     """
+
     metadata_logger = MetaDataLogger()
 
     def __init__(self, config: dict = CONFIG):
@@ -108,7 +111,7 @@ class ExecutorMock:
 
         Returns:
             InputData: Input data for ML model
-        """        
+        """
         long_data = pd.read_parquet(self.config["train_data_path"])
         return InputData.from_long_df(long_data)
 
@@ -128,13 +131,12 @@ class ExecutorMock:
 
         Args:
             model (ModelInterfaceV4): _description_
-        """        
+        """
         self._write_model(model=model)
         self._postprocess_model_results(model=model)
 
     def run_train_flow(self):
-        """Run training flow and cache trained model
-        """        
+        """Run training flow and cache trained model"""
         model_class, config_api = self._init_train(self.config)
         model = model_class.initialize(config_api, self.metadata_logger)
 
@@ -152,7 +154,7 @@ class ExecutorMock:
 
         Returns:
             ModelInterfaceV4: ML model
-        """        
+        """
         return model_class.load(self.config["model_path"], self.config["model_name"])
 
     def get_prediction_data(
@@ -166,7 +168,7 @@ class ExecutorMock:
 
         Returns:
             InputData: Input data for ML model
-        """        
+        """
         long_data = pd.read_parquet(self.config["prediction_data_path"])
         return InputData.from_long_df(long_data)
 
@@ -176,12 +178,11 @@ class ExecutorMock:
 
         Args:
             predictions (pd.DataFrame): Predictions made by ML Model
-        """        
+        """
         predictions.to_parquet(self.config["predictions_path"])
 
     def run_predict_flow(self):
-        """Run predict flow
-        """        
+        """Run predict flow"""
         model: ModelInterfaceV4 = self.load_model(self.config["model"])
 
         input_data = self.get_prediction_data(model)
@@ -190,7 +191,6 @@ class ExecutorMock:
         self.write_predictions(pd.concat(predictions))
 
     def run_full_flow(self):
-        """Run both train and predict flows
-        """        
+        """Run both train and predict flows"""
         self.run_train_flow()
         self.run_predict_flow()
