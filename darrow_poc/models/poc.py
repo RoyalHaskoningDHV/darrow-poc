@@ -161,7 +161,7 @@ class POCAnomaly:
             training_end_date="2010-01-04 00:00:00",
         )
         _, num_obs, _, r2_by_target = validator.fit_and_evaluate(str(self.target))
-        r2_by_missing_sensor = validator.flatten_output(r2_by_target, "r2")
+        r2_by_missing_sensor = validator._flatten_output(r2_by_target, "r2")
         self.logger.log_params(r2_by_missing_sensor)  # This will be logged to mlflow
         self.logger.log_params({f"samples_{k}": v for k, v in num_obs.items()})
 

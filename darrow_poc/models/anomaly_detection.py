@@ -210,7 +210,7 @@ def get_anomalies(
     return anomalies
 
 
-def standardize_prediction_column_names(y_hat):
+def _standardize_prediction_column_names(y_hat):
     return y_hat.rename(
         columns={
             "predict_q_0.9986501019683699": "predict_lead_0_q_0.9986501019683699",
@@ -530,7 +530,7 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
                 )
 
             # Evaluate
-            pred[target_channel][leave_out_feature] = standardize_prediction_column_names(
+            pred[target_channel][leave_out_feature] = _standardize_prediction_column_names(
                 model[target_channel][leave_out_feature].predict(X_test)
             )
 
@@ -551,7 +551,7 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
 
         return model, num_obs, pred, r2
 
-    def flatten_output(self, output: dict[str, dict], name: str) -> dict[str, str]:
+    def _flatten_output(self, output: dict[str, dict], name: str) -> dict[str, str]:
         return {
             f"{name}_target_{outer_key}_missing_feature_{inner_key}": f"{inner_value}"
             for outer_key, inner_dict in output.items()
@@ -579,7 +579,7 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
         feature_channels = self._get_feature_channels(target_channel)
 
         for leave_out_feature in feature_channels:
-            pred[target_channel][leave_out_feature] = standardize_prediction_column_names(
+            pred[target_channel][leave_out_feature] = _standardize_prediction_column_names(
                 self.model[target_channel][leave_out_feature].predict(X_test)
             )
 
