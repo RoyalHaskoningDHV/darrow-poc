@@ -166,7 +166,7 @@ class POCAnomaly:
         self.logger.log_params({f"samples_{k}": v for k, v in num_obs.items()})
 
         self._model = validator
-        return np.mean(r2_by_missing_sensor.values()), None
+        return np.mean([float(x) for x in r2_by_missing_sensor.values()]), None
 
     def predict(self, input_data: InputData, **kwargs) -> tuple[list[pd.DataFrame], Any]:
         """Run a prediction with a trained model.

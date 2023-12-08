@@ -30,16 +30,6 @@ class ExecutorMock:
     def __init__(self, config: dict = CONFIG):
         self.config = config
 
-    def _test_model_attributes(self):
-        # The isinstance check with the annotation protocol already does this,
-        # but just to be super clear that the actual exectutors expect these
-        # TODO: Do they? At initialization already?! Not convinced...
-        model_class = self.config["model"]
-        assert hasattr(model_class, "model_type_name"), "'model_type_name' attribute is missing!"
-        assert hasattr(model_class, "model_category"), "'model_category' attribute is missing!"
-        assert hasattr(model_class, "base_features"), "'base_features' attribute is missing!"
-        assert hasattr(model_class, "target"), "'target' attribute is missing!"
-
     def _init_train(self, str) -> tuple[ModelInterfaceV4, Configuration]:
         model_class = self.config["model"]
         config_api = ConfigurationMock()
@@ -103,8 +93,8 @@ class ExecutorMock:
 
         input_data = self.get_prediction_data(model)
         preprocessed_data = model.preprocess(input_data)
-        predictions = model.predict(preprocessed_data)
-        self.write_predictions(predictions)
+        predictions, _ = model.predict(preprocessed_data)
+        self.write_predictions(pd.concat(predictions))
 
     def run_full_flow(self):
         self.run_train_flow()

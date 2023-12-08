@@ -1,16 +1,16 @@
 # DARROW-POC
-Documentation and code for onboarding a timeseries machine learning model to the `darrow-ml-platform`. You can use the example model as a starting point for onboarding your own models.
+Documentation and code for onboarding a timeseries machine learning model to the `darrow-ml-platform`. The `darrow-ml-platform` is the infrastructure to deploy machine learning models for the `DARROW` project, train models and make predictions. You can use the example model `POCAnomaly` in `models/poc.py` as a starting point for onboarding your own models.
 
 ## Hierarchy data model
-The data hierarchy is represented by a __rooted tree__ that mimics the real world (usually physical) relationships inherent in the data. This is easiest to understand with an example:
+The data __hierarchy__ is represented by a __rooted tree__ that mimics the real world (usually physical) relationships inherent in the data. This is easiest to understand with an example:
 
 ![data_model_example](images/rooted_tree_docs.png)
 
 In this example, a tenant named Alice manages a wastewater treatment plant (WWTP) with two lines with various components and equipment, such as aeration blowers and pumps.
 
-This tree is not just represented in the figure, but also in the code used by the darrow platform. That is, there are specific `UNIT` objects, `TAG` objects and others that are used to define a rooted tree consisting of one parent node (tenant), with one or more children nodes (in this case WWTP), which can again have one or more children nodes (in this case lines) etc.
+This tree is not just represented in the figure, but also in the code used by the darrow platform. That is, there are specific `UNIT` objects and others (in `twinn_ml_interface/objectmodels/hierarchy.py`) that are used to define a rooted tree consisting of one parent node (tenant), with one or more children nodes (in this case WWTP), which can again have one or more children nodes (in this case lines) etc.
 
-You will not need to create this tree yourself, this should be decided together with the consortium partners. Nevertheless, when creating your own `ModelInterfaceV4` compliant model for onboarding onto the platform, keeping this structure in mind is useful. Below we will go into more depth about how the `ModelInterfaceV4` relates to this rooted tree.
+You will not need to create this tree yourself, this should be decided together with the consortium partners. Nevertheless, when creating your own `ModelInterfaceV4` compliant model keeping this structure in mind is useful. Below we will go into more depth about how the `ModelInterfaceV4` relates to this rooted tree hierarchy.
 
 ## `ModelInterfaceV4`: A contract between models and infrastructure
 `ModelInterfaceV4` is a python _Protocol_. That means, it specifies exactly what methods or attributes need to be defined, which parameters need to be inputted and what needs to be returned by methods of a class. Unlike a _Base class_, it does not allow for inheritance. Because of this it also does not have an `__init__()` method. You can think of it as a recipe to follow.
@@ -98,7 +98,7 @@ def get_target_template() -> UnitTagTemplate | UnitTag:
     return UnitTag(Unit("STAH", "DISCHARGE_STATION", True), Tag("DISCHARGE"))
 ```
 
-The method `get_target_template()` returns either a `UnitTagTemplate` or a `UnitTag` and thereby specifies the _target_ variable of our machine learning model. The latter is somewhat simpler and used in this example. We basically specify the connection between our target unit, which has `unit_code='STAH'` and `unit_type_code='DISCHARGE_STATION'`, and the timeseries or sensor data we would like to get, which is given by the `tag` `"DISCHARGE"`. The unit information can be seen also in the rooted tree above. The tag label refers to the `TYPE` used in the data (TODO: Is that true? - CHeck with Jesse! It seems that for a given Tag or TagType there is a mapping from specific keys (like Discharge) to values in the databse, which can be slightly different. I do not fully understand why this is needed, shouldn't the hierarchy be all you need to find all e.g. DISCHARGE units? Why can't we use that information to query from the db hierarchy? Is it because we need the db to get the hierarhcy in the first place?).
+The method `get_target_template()` returns either a `UnitTagTemplate` or a `UnitTag` and thereby specifies the _target_ variable of our machine learning model. The latter is somewhat simpler and used in this example. We basically specify the connection between our target unit, which has `unit_code='STAH'` and `unit_type_code='DISCHARGE_STATION'`, and the timeseries or sensor data we would like to get, which is given by the `tag` `"DISCHARGE"`. The unit information can be seen also in the rooted tree above. The tag label refers to the `TYPE` used in the data.
 
 Next let's look at the `get_data_config_template()` method, which determines what data to select for our machine learning model besides the target.
 
@@ -119,7 +119,7 @@ def get_data_config_template() -> list[DataLabelConfigTemplate] | list[UnitTag]:
 
 There are again two possible implementations, either with `list[DataLabelConfigTemplate]` or `list[UnitTag]`. For illustration purposes we will show both. `UnitTag`, as used in the implementation above, we have already seen in the previous method. However, there is an alternative way to implement it, using the `from_string` class method, where we specify only the `unit_tag`, which is a combination between `unit_code` and `tag`, separated by a colon: `"{unit_code}:{tag}"`.
 
-In the below implementation we use `DataLabelConfigTemplate` instead of `UnitTag`. This implementation is more complex, but takes advantage of relative paths in our __rooted tree__. The first `DataLabelConfigTemplate` selects all units following the path `RelativeType.PARENTS --> RelativeType.CHILDREN` starting from the _target_ unit. In this case, we select all units on the same level as the target. We need two entries of `DataLabelConfigTemplate`, because the first has datalevel `SENSOR`, while the second has datalevel `WEATHER`. (TODO: Explain more about datalevels.)
+In the below implementation we use `DataLabelConfigTemplate` instead of `UnitTag`. This implementation is more complex, but takes advantage of relative paths in our __rooted tree__. The first `DataLabelConfigTemplate` selects all units following the path `RelativeType.PARENTS --> RelativeType.CHILDREN` starting from the _target_ unit. In this case, we select all units on the same level as the target. We need two entries of `DataLabelConfigTemplate`, because the first has datalevel `SENSOR`, while the second has datalevel `WEATHER`. A `DataLevel` distinction is made, because datalevels can have different properties when retrieving the data. This is not obvious when loading the data into your model, but does matter for the backend / data retrieval process. It is probably best to check with RHDHV which datalevels you should use for which data source.
 
 ```python
 @staticmethod
