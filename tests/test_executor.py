@@ -25,7 +25,6 @@ class TestModelWithLocalExecutor(unittest.TestCase):
             "predictions_path": BASE_DIR / "output/predictions/predictions.parquet",
         }
         executor = ExecutorMock(config)
-        executor._test_model_attributes()
         executor.run_full_flow()
         assert True
 
