@@ -1,7 +1,9 @@
 # DARROW-POC
+
 Documentation and code for onboarding a timeseries machine learning model to the `darrow-ml-platform`. The `darrow-ml-platform` is the infrastructure to deploy machine learning models for the `DARROW` project, train models and make predictions. You can use the example model `POCAnomaly` in `models/poc.py` as a starting point for onboarding your own models.
 
 ## Hierarchy data model
+
 The data __hierarchy__ is represented by a __rooted tree__ that mimics the real world (usually physical) relationships inherent in the data. This is easiest to understand with an example:
 
 ![data_model_example](images/rooted_tree_docs.png)
@@ -13,16 +15,19 @@ This tree is not just represented in the figure, but also in the code used by th
 You will not need to create this tree yourself, this should be decided together with the consortium partners. Nevertheless, when creating your own `ModelInterfaceV4` compliant model keeping this structure in mind is useful. Below we will go into more depth about how the `ModelInterfaceV4` relates to this rooted tree hierarchy.
 
 ## `ModelInterfaceV4`: A contract between models and infrastructure
+
 `ModelInterfaceV4` is a python _Protocol_. That means, it specifies exactly what methods or attributes need to be defined, which parameters need to be inputted and what needs to be returned by methods of a class. Unlike a _Base class_, it does not allow for inheritance. Because of this it also does not have an `__init__()` method. You can think of it as a recipe to follow.
 
 To verify if a class follows the contract an `isinstance` check of the form `isinstance(myclass, myprotocol)` can be performed. For `ModelInterfaceV4`, we are using a modified version of `Protocol`, called `AnnotationProtocol` from the [`annotation-protocol` package](https://github.com/RoyalHaskoningDHV/annotation-protocol). It allows for more thorough `isinstance` checks, making all the necessary comparisons. An example implementation for how to test `ModelInterfaceV4` compliance can be found in `tests/test_inteface.py`.
 
 ## Proof of concept / example model
+
 This repository contains an example model called `POCAnomaly` (in `models/poc.py`) adhering to `ModelInterfaceV4`. It is an anomaly detection model that takes sensor data as input and replaces anomalies with `np.nan`. Of course, the purpose of the machine learning model here is not important. Instead, we aim to show how a machine learning model can be onboarded onto the `darrow-ml-platform` (or at least prepared for onboarding by complying to the data contract).
 
 We also included a local _Executor_ of the model in `mocks/mocks.py`, which mimicks how a real executor would execute model training or predicting on the `darrow-ml-platform` infrastructure.
 
 ## How `ModelInterfaceV4` relates to the hierarchy
+
 While the `ModelInterfaceV4` protocol is not terribly complex, it contains a number of custom `types` and `Enums`, which often relate to the __rooted tree__ data model and might take some getting used to. Consider the `Node` object from the `objectmodels.hierarchy` module:
 
 ```python
@@ -69,14 +74,17 @@ Unit(
 While you do not have to define any tree structure yourself it is still useful to have an idea about these classes, since we have to define a number of related ones when onboarding our model to `ModelInterfaceV4`.
 
 ## Deep dive into `ModelInterfaceV4`
+
 Let's have a look at what we need to define to make our model `ModelInterfaceV4` compliant. For illustration purposes let's just use the proof of concept model from this repository. We want to onboard an anomaly detection model, defined in `models.anomaly_detection`. But before we get to that we should have a quick look at our data.
 
 ### POC Hierarchy
+
 This is an illustration of our __rooted_tree__ hierarchy. In this case we do not have any meta-data and we have a single timeseries per measurement station.
 
 ![data_model_poc](images/rooted_tree_poc.png)
 
 ### Data
+
 The data for this proof of concept looks as follows, where `altenburg1` is one of the station names (`unit_code`), which has a sensor that measures water `discharge` (this is a timeseries `tag`). There are multiple of these stations, plus two rainfall stations with sensors of type `precipitation` and one evaporation station with a sensor of type `evaporation`. Each datapoint needs to have both `ID` and `TYPE` specified, even if all sensors have the same `TYPE`. Here, stations end up being the `ID` and sensor types end up being the `TYPE`.
 
 | TIME                      | ID         | VALUE    | TYPE      |
