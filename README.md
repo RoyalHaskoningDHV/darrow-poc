@@ -257,8 +257,8 @@ class POCAnomaly(ModelInterfaceV4):
 
 ### Testing compliance with the data contract
 
-Since all the attributes and methods from the __Protocol__ `ModelInterfaceV4` are implemented, our `POCAnomaly` class passes the `isinstance` check with `ModelInterfaceV4` (see `tests/test_interface.py`).
+Since all the attributes and methods from the __Protocol__ `ModelInterfaceV4` are implemented, including the correct type-hints / annotations, our `POCAnomaly` class passes the `isinstance` check with `ModelInterfaceV4` (see `tests/test_interface.py`).
 
 ## Mock Executor
 
-The `executor` class takes care of running the model either for training or predictions on the `darrow-ml-platform` infrastructure. Here, we implemented a mock executor to emulate that behaviour to some extend, which hopefully makes it a little clearer in what context the model class (in this case `POCAnomaly`) will be used. In addition, you can run additional tests with this executor (`tests/test_executor.py`) that actually perform training and predicting.
+The `executor` class takes care of running the model either for training or predictions on the `darrow-ml-platform` infrastructure. Here, we implemented a mock executor to emulate that behaviour to some extent, which hopefully makes it a little clearer in what context the model class (in this case `POCAnomaly`) will be used. In addition, you can run additional tests with this executor (`tests/test_executor.py`) that actually perform training and predicting.
