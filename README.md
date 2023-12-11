@@ -18,11 +18,11 @@ You will not need to create this tree yourself, this should be decided together 
 
 `ModelInterfaceV4` is a python _Protocol_. That means, it specifies exactly what methods or attributes need to be defined, which parameters need to be inputted and what needs to be returned by methods of a class. Unlike a _Base class_, it does not allow for inheritance. Because of this it also does not have an `__init__()` method. You can think of it as a recipe to follow.
 
-To verify if a class follows the contract an `isinstance` check of the form `isinstance(myclass, myprotocol)` can be performed. For `ModelInterfaceV4`, we are using a modified version of `Protocol`, called `AnnotationProtocol` from the [`annotation-protocol` package](https://github.com/RoyalHaskoningDHV/annotation-protocol). It allows for more thorough `isinstance` checks, making all the necessary comparisons. An example implementation for how to test `ModelInterfaceV4` compliance can be found in `tests/test_inteface.py`.
+We think of `ModelInterfaceV4` as a contract between the machine learning models and the cloud infrastructure in which they run, because as long as a model adheres to the protocol `ModelInterfaceV4`, it will work in the infrastructure. To verify if a class follows the contract an `isinstance` check of the form `isinstance(myclass, myprotocol)` can be performed. For `ModelInterfaceV4`, we are using a modified version of `Protocol`, called `AnnotationProtocol` from the [`annotation-protocol` package](https://github.com/RoyalHaskoningDHV/annotation-protocol). It allows for more thorough `isinstance` checks, also checking all type annotations. An example implementation for how to test `ModelInterfaceV4` compliance can be found in `tests/test_inteface.py`.
 
 ## Proof of concept / example model
 
-This repository contains an example model called `POCAnomaly` (in `models/poc.py`) adhering to `ModelInterfaceV4`. It is an anomaly detection model that takes sensor data as input and replaces anomalies with `np.nan`. Of course, the purpose of the machine learning model here is not important. Instead, we aim to show how a machine learning model can be onboarded onto the `darrow-ml-platform` (or at least prepared for onboarding by complying to the data contract).
+This repository contains an example model called `POCAnomaly` (in `models/poc.py`) adhering to `ModelInterfaceV4`. It is an anomaly detection model that takes sensor data as input returns a boolean series denoting anomalies. Of course, the purpose of the machine learning model here is not important. Instead, we aim to show how a machine learning model can be onboarded onto the `darrow-ml-platform` (or at least be prepared for onboarding by complying to the data contract).
 
 We also included a local _Executor_ of the model in `mocks/mocks.py`, which mimicks how a real executor would execute model training or predicting on the `darrow-ml-platform` infrastructure.
 
@@ -98,7 +98,7 @@ The data above is following the `SAM` long-format, which is also how the data is
 
 #### Methods you need to write an implementation for
 
-All methods in `ModelInterfaceV4` need to be present for our model class to be compliant with the data contract. However, if we do not want to use a particular method, we can have it do nothing. Some methods, however do have to be implemented return a particular output - let's look at those first.
+All methods in `ModelInterfaceV4` need to be present for our model class to be compliant with the data contract. However, if we do not want to use a particular method, we can have it do nothing. Some methods, however do have to be implemented and return a particular output - let's look at those first.
 
 ```python
 @staticmethod
@@ -186,7 +186,7 @@ def train(self, input_data: InputData, **kwargs) -> None:
     self._model = validator
 ```
 
-Conversely, the `predict` method needs to implement the making of predictions with the trained model. In our case, this means replacing detected anomalies with `np.nan`. Note that with the tiny amount of sample training data saved in this repository, the quality of these predictions will always be abysmal.
+Conversely, the `predict` method needs to implement the making of predictions with the trained model. Note that with the tiny amount of sample training data saved in this repository, the quality of predictions of our proof of concept model will be terrible.
 
 ```python
 def predict(self, input_data: InputData, **kwargs) -> list[pd.DataFrame]:
@@ -214,7 +214,7 @@ def load(cls, foldername: PathLike, filename: str) -> Callable:
 
 #### Methods you need to have, but do not need to implement
 
-In principle, you can use the exact implementations given below if you do not want to add your own functionality. `get_train_window_finder_config_template` is used to specify a (sub-)set of data used to perform data validation with `validate_input_data`. Specifically, if implemented, the data specified in `get_train_window_finder_config_template` will be checked against the code in `validate_input_data` for a specific time period (this time period is a setting you have to provide to RHDHV, it is not directly accessible or changeable in the code). If the validation fails for that time period, the window is slid back in time by a certain amount and the validation is performed again. This sliding window approach is continued until validation passes or until a certain limit is reached. Again, the amount of sliding and the moment we stop trying another more historic time window are parameters that are not under your control via code. If you want to tweak them you need ot align with RHDHV.
+In principle, you can use the exact implementations given below if you do not want to add your own functionality. `get_train_window_finder_config_template` is used to specify a (sub-)set of data used to perform data validation with `validate_input_data`. Specifically, if implemented, the data specified in `get_train_window_finder_config_template` will be checked against the code in `validate_input_data` for a specific time period (this time period is a setting you have to provide to RHDHV, it is not directly accessible or changeable in the code). If the validation fails for that time period, the window is slid back in time by a certain amount and the validation is performed again. This sliding window approach is continued until validation passes or until a certain limit is reached. Again, the amount of sliding and the moment we stop trying another more historic time window are parameters that are not under your control via code.
 
 `preprocess` has its own implementation, because in the future we want to be able to perform separate actions for preprocessing compared to training or predicting, like for instance create a specific preprocessing log. Furthermore, it makes the structure of the model classes nicely modular, separating logic for preprocessing, training and predicting. Finally, preprocessing steps are likely repeated between validation, training and predictions - this part is up to you.
 

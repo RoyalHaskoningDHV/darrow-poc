@@ -187,7 +187,6 @@ def get_anomalies(
     n_consensus: Union[int, str] (default = 'all')
         By default all sub-model predictions have to flag outliers, but you can also specify
         an integer of the number of models desired for consenus.
-        TODO: Currently only 'all' is implemented.
     outlier_window: int (default=1)
         the window size in which at least `outlier_limit` should be outside of `outlier_min_q`
     outlier_limit: int (default=1)
@@ -219,7 +218,7 @@ def _standardize_prediction_column_names(y_hat):
             "predict_q_0.15865525393145707": "predict_lead_0_q_0.15865525393145707",
             "predict_q_0.02275013194817921": "predict_lead_0_q_0.02275013194817921",
             "predict_q_0.0013498980316301035": "predict_lead_0_q_0.0013498980316301035",
-            "predict_q_0.5": "predict_lead_0_mean",  # Note that we actually have the median here
+            "predict_q_0.5": "predict_lead_0_mean",
         }
     )
 
@@ -247,7 +246,6 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
     n_consensus: Union[int, str] (default = 'all')
         By default all sub-model predictions have to flag outliers, but you can also specify
         an integer of the number of models desired for consenus.
-        TODO: Currently only 'all' is implemented.
     outlier_window: int (default=1)
         the window size in which at least `outlier_limit` should be outside of `outlier_min_q`
     outlier_limit: int (default=1)
