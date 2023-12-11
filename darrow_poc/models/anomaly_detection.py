@@ -66,7 +66,10 @@ def get_outliers(
     outlier_window: int = 1,
     outlier_limit: int = 1,
 ):
-    """Determine outliers, similar to `sam_quantile_plot` implementation.
+    """Determine outliers, similar to `sam_quantile_plot` implementation of SAM. Methods referenced
+    in the parameter descriptionsn also refer to SAM code.
+
+    See: https://github.com/RoyalHaskoningDHV/sam
 
     Parameters
     ----------
@@ -135,7 +138,6 @@ def get_outlier_consensus(
     n_consensus: Union[int, str] (default = 'all')
         By default all sub-model predictions have to flag outliers, but you can also specify
         an integer of the number of models desired for consenus.
-        TODO: Currently only 'all' is implemented.
     outlier_window: int (default=1)
         the window size in which at least `outlier_limit` should be outside of `outlier_min_q`
     outlier_limit: int (default=1)

@@ -1,7 +1,8 @@
+import os
 import pandas as pd
 from typing import Any
 
-from darrow_poc.models import POCAnomaly
+from dataclasses import dataclass
 
 from twinn_ml_interface.input_data import InputData
 from twinn_ml_interface.objectmodels import (
@@ -15,13 +16,15 @@ from twinn_ml_interface.objectmodels import (
 from twinn_ml_interface.interface import ModelInterfaceV4
 
 
-CONFIG = {
-    "model": POCAnomaly,
-    "data_path": "/my/path/data/data.parquet",
-    "model_path": "/my/path/model/",
-    "model_name": "my_model",
-    "predictions_path": "/my/path/predictions/predictions.parquet",
-}
+@dataclass
+class ModelConfig:
+    """Class for configuring model adhering to ModelInterfaceV4"""
+    model: ModelInterfaceV4
+    train_data_path: os.PathLike
+    prediction_data_path: os.PathLike
+    model_path: os.PathLike
+    model_name: str
+    predictions_path: os.PathLike = "/my/path/predictions/predictions.parquet"
 
 
 class ConfigurationMock(Configuration):
@@ -90,11 +93,11 @@ class ExecutorMock:
 
     metadata_logger = MetaDataLogger()
 
-    def __init__(self, config: dict = CONFIG):
+    def __init__(self, config: ModelConfig):
         self.config = config
 
     def _init_train(self, str) -> tuple[ModelInterfaceV4, Configuration]:
-        model_class = self.config["model"]
+        model_class = self.config.model
         config_api = ConfigurationMock()
         return model_class, config_api
 
@@ -112,7 +115,7 @@ class ExecutorMock:
         Returns:
             InputData: Input data for ML model
         """
-        long_data = pd.read_parquet(self.config["train_data_path"])
+        long_data = pd.read_parquet(self.config.train_data_path)
         return InputData.from_long_df(long_data)
 
     def _write_model(self, model: ModelInterfaceV4) -> None:
@@ -120,7 +123,7 @@ class ExecutorMock:
         # cache before dumping the model. This means that MetaDataLogger contents won't be available
         # when loading the model for predictions
         self.metadata_logger.reset_cache()
-        model.dump(self.config["model_path"], self.config["model_name"])
+        model.dump(self.config.model_path, self.config.model_name)
 
     def _postprocess_model_results(self, model: ModelInterfaceV4):
         model.base_features = None
@@ -155,7 +158,7 @@ class ExecutorMock:
         Returns:
             ModelInterfaceV4: ML model
         """
-        return model_class.load(self.config["model_path"], self.config["model_name"])
+        return model_class.load(self.config.model_path, self.config.model_name)
 
     def get_prediction_data(
         self,
@@ -169,7 +172,7 @@ class ExecutorMock:
         Returns:
             InputData: Input data for ML model
         """
-        long_data = pd.read_parquet(self.config["prediction_data_path"])
+        long_data = pd.read_parquet(self.config.prediction_data_path)
         return InputData.from_long_df(long_data)
 
     def write_predictions(self, predictions: pd.DataFrame):
@@ -179,11 +182,11 @@ class ExecutorMock:
         Args:
             predictions (pd.DataFrame): Predictions made by ML Model
         """
-        predictions.to_parquet(self.config["predictions_path"])
+        predictions.to_parquet(self.config.predictions_path)
 
     def run_predict_flow(self):
         """Run predict flow"""
-        model: ModelInterfaceV4 = self.load_model(self.config["model"])
+        model: ModelInterfaceV4 = self.load_model(self.config.model)
 
         input_data = self.get_prediction_data(model)
         preprocessed_data = model.preprocess(input_data)
