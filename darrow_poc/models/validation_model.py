@@ -268,7 +268,7 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
         -------
         estimator : sklearn Model
         """
-        from darrow_poc.models.quantreg import LinearQuantileRegressor
+        from darrow_poc.models.linear_quantile_regressor import LinearQuantileRegressor
 
         regressor = LinearQuantileRegressor(
             quantiles=[
