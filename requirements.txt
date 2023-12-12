@@ -1,0 +1,13 @@
+annotation-protocol
+dill
+geopandas
+matplotlib
+pandas
+python-dotenv
+sam
+scikit-learn
+scipy
+statsmodels
+seaborn
+pytest
+pyarrow

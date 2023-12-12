@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project.urls]
+homepage = "https://github.com/RoyalHaskoningDHV/twinn-ml-example"
+issues = "https://github.com/RoyalHaskoningDHV/twinn-ml-example/issues"
+discussions = "https://github.com/RoyalHaskoningDHV/twinn-ml-example/discussions"
+
+[project]
+name = "darrow-poc"
+description = "Proof of concept for twinn-ml-interface with model pipeline for predicting water throughput in ruhr river."
+readme = "README.md"
+requires-python = ">=3.10,<3.11"
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+#dependencies = ["annotation-protocol", "matplotlib", "pandas"]
+dynamic = ["version", "dependencies"]
+
+[tool.setuptools]
+packages.find.include = ["darrow_poc*"]
+dynamic.version.attr = "darrow_poc._version.__version__"
+dynamic.dependencies = {file = ["requirements.txt"]}
+
+[tool.black]
+line-length = 120
+
+[tool.isort]
+profile = "black"
+
+[tool.ruff]
+target-version = "py310"
+# Same as Black.
+line-length = 120
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
