@@ -23,6 +23,7 @@ from twinn_ml_interface.objectmodels import (
     WindowViability,
 )
 
+from .anomaly_detection import get_anomalies
 from .validation_model import ValidationModel
 
 
