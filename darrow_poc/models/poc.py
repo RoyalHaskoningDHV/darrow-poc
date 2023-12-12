@@ -1,6 +1,5 @@
 from os import PathLike
 from pathlib import Path
-from typing import Any, Callable
 
 import dill as pickle
 import numpy as np
@@ -106,7 +105,7 @@ class POCAnomaly:
 
         Args:
             logger (MetaDataLogger): A MetaDataLogger object to write logs to MLflow later.
-            tenant_config (dict[str, Any]): Tenant specific configuration.
+            tenant_config (dict[str, object]): Tenant specific configuration.
         """
         model = cls(configuration.target_name)
         model.configuration = configuration
@@ -141,7 +140,7 @@ class POCAnomaly:
         """
         return {PredictionType.ML: (True, None)}
 
-    def train(self, input_data: InputData, **kwargs) -> tuple[float, Any]:
+    def train(self, input_data: InputData, **kwargs) -> tuple[float, object]:
         """Train a model.
 
         Args:
@@ -149,7 +148,7 @@ class POCAnomaly:
 
         Returns:
             float: Number between (-inf, inf) indicating the model performance
-            Any: Any other object that can be used for testing. This object will be ignored
+            object: Any other object that can be used for testing. This object will be ignored
                 by the infrastructure
         """
         train = pd.concat(input_data.values(), axis=1)
@@ -168,7 +167,7 @@ class POCAnomaly:
         self._model = validator
         return np.mean([float(x) for x in r2_by_missing_sensor.values()]), None
 
-    def predict(self, input_data: InputData, **kwargs) -> tuple[list[pd.DataFrame], Any]:
+    def predict(self, input_data: InputData, **kwargs) -> tuple[list[pd.DataFrame], object]:
         """Run a prediction with a trained model.
 
         Args:
@@ -176,7 +175,7 @@ class POCAnomaly:
 
         Returns:
             list[pd.DataFrame]: List of dataframes with predictions
-            Any: Any other object that can be used for testing. This object will be ignored
+            object: Any other object that can be used for testing. This object will be ignored
                 by the infrastructure
         """
         target_channel = str(self.target)
@@ -202,7 +201,7 @@ class POCAnomaly:
             pickle.dump(self, f)
 
     @classmethod
-    def load(cls, foldername: PathLike, filename: str) -> Callable:
+    def load(cls, foldername: PathLike, filename: str) -> ModelInterfaceV4:
         """
         Reads the following files:
         * filename.pkl
