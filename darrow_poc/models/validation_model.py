@@ -1,6 +1,8 @@
+from datetime import datetime
+import logging
 import pandas as pd
 import numpy as np
-from typing import Union
+from typing import Literal
 
 from scipy.stats import norm
 from sklearn import base
@@ -11,6 +13,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import r2_score
 
 from sam.feature_engineering import BuildRollingFeatures
+
+
+logging.basicConfig(level=logging.INFO)
 
 
 def engineer_steps(channel: str, channels: list):
@@ -59,172 +64,6 @@ def engineer_steps(channel: str, channels: list):
     return [discharge_step]
 
 
-def get_outliers(
-    y_true,
-    y_hat,
-    outlier_min_q: int = 3,
-    outlier_window: int = 1,
-    outlier_limit: int = 1,
-):
-    """Determine outliers, similar to `sam_quantile_plot` implementation of SAM. Methods referenced
-    in the parameter descriptionsn also refer to SAM code.
-
-    See: https://github.com/RoyalHaskoningDHV/sam
-
-    Parameters
-    ----------
-    y_true: pd.Series
-        Pandas Series containing the actual values. Should have same index as y_hat.
-    y_hat: pd.DataFrame
-        Dataframe returned by the MLPTimeseriesRegressor .predict() function.
-        Columns should contain at least `predict_lead_x_mean`, where x is predict ahead
-        and for each quantile: `predict_lead_x_q_y` where x is the predict_ahead, and
-        y is the quantile. So e.g.:
-        `['predict_lead_0_q_0.25, predict_lead_0_q_0.75, predict_lead_mean']`
-    outlier_window: int (default=1)
-        the window size in which at least `outlier_limit` should be outside of `outlier_min_q`
-    outlier_limit: int (default=1)
-        the minimum number of outliers within outlier_window to be outside of `outlier_min_q`
-
-    Returns
-    -------
-    outliers : np.ndarray
-        Array with true false values denoting outliers with true
-    """
-    if isinstance(y_true, pd.core.series.Series):
-        y_true = y_true.values
-
-    predict_ahead = 0
-    these_cols = [c for c in y_hat.columns if "predict_lead_%d_q_" % predict_ahead in c]
-    col_order = np.argsort([float(c.split("_")[-1]) for c in these_cols])
-    n_quants = int((len(these_cols)) / 2)
-
-    valid_low = y_hat[these_cols[col_order[n_quants - 1 - (outlier_min_q - 1)]]]
-    valid_high = y_hat[these_cols[col_order[n_quants + (outlier_min_q - 1)]]]
-    outliers = (y_true > valid_high) | (y_true < valid_low)
-    outliers = outliers.astype(int)
-    k = np.ones(outlier_window)
-    outliers = (np.convolve(outliers, k, mode="full")[: len(outliers)] >= outlier_limit).astype(bool)
-
-    return outliers
-
-
-def get_outlier_consensus(
-    y_true: pd.Series,
-    pred: pd.DataFrame,
-    target_channel: str,
-    n_consensus: Union[int, str] = "all",
-    outlier_min_q: int = 3,
-    outlier_window: int = 1,
-    outlier_limit: int = 1,
-):
-    """Determine outliers. We only consider values to be outliers when they occur in
-    all or most sub-model predictions. For instance, we might fit 4 models for the target channel,
-    where each time we leave one feature out. Then we consider those values outliers that
-    are flagged by all or most sub-models.
-
-    Parameters
-    ----------
-    y_true: pd.Series
-        Pandas Series containing the actual values. Should have same index as y_hat.
-    y_hat: pd.DataFrame
-        Dataframe returned by the MLPTimeseriesRegressor .predict() function.
-        Columns should contain at least `predict_lead_x_mean`, where x is predict ahead
-        and for each quantile: `predict_lead_x_q_y` where x is the predict_ahead, and
-        y is the quantile. So e.g.:
-        `['predict_lead_0_q_0.25, predict_lead_0_q_0.75, predict_lead_mean']`
-    target_channel: str
-        Name of target channel to make predictions for
-    n_consensus: Union[int, str] (default = 'all')
-        By default all sub-model predictions have to flag outliers, but you can also specify
-        an integer of the number of models desired for consenus.
-    outlier_window: int (default=1)
-        the window size in which at least `outlier_limit` should be outside of `outlier_min_q`
-    outlier_limit: int (default=1)
-        the minimum number of outliers within outlier_window to be outside of `outlier_min_q`
-
-    Returns
-    -------
-    outliers : np.ndarray
-        Array with true false values denoting outliers with true
-    """
-    outliers = []
-    for left_out_channel in pred[target_channel].keys():
-        y_hat = pred[target_channel][left_out_channel]
-        outliers.append(
-            get_outliers(
-                y_true,
-                y_hat,
-                outlier_min_q=outlier_min_q,
-                outlier_window=outlier_window,
-                outlier_limit=outlier_limit,
-            )
-        )
-
-    if n_consensus == "all":
-        return np.array(outliers).all(axis=0)
-    return np.array(outliers).sum(axis=0) >= n_consensus
-
-
-def get_anomalies(
-    pred: dict,
-    df_test: pd.DataFrame,
-    target_channel: str,
-    n_consensus: Union[int, str] = "all",
-    outlier_window: int = 3,
-    outlier_limit: int = 3,
-):
-    """Get outliers for all features in df_test
-
-    Parameters
-    ----------
-    pred : dict
-        The `pred` key in the output dictionary from the `predict` method of the
-        `ValidationModel` class.
-        It contains predictions for each target channel for sub-models with single
-        channels left out (pred[<target_channel>][<left_out_channel>])
-    df_test : pd.DataFrame
-        Data where to find anomalies
-    target_channel: str
-    n_consensus: Union[int, str] (default = 'all')
-        By default all sub-model predictions have to flag outliers, but you can also specify
-        an integer of the number of models desired for consenus.
-    outlier_window: int (default=1)
-        the window size in which at least `outlier_limit` should be outside of `outlier_min_q`
-    outlier_limit: int (default=1)
-        the minimum number of outliers within outlier_window to be outside of `outlier_min_q`
-
-    Returns
-    -------
-    anomalies : np.ndarray
-        Array with true false values denoting outliers with true
-    """
-    y_true = df_test.loc[:, target_channel]
-    anomalies = get_outlier_consensus(
-        y_true,
-        pred,
-        target_channel,
-        outlier_window=outlier_window,
-        outlier_limit=outlier_limit,
-    )
-
-    return anomalies
-
-
-def _standardize_prediction_column_names(y_hat):
-    return y_hat.rename(
-        columns={
-            "predict_q_0.9986501019683699": "predict_lead_0_q_0.9986501019683699",
-            "predict_q_0.9772498680518208": "predict_lead_0_q_0.9772498680518208",
-            "predict_q_0.8413447460685429": "predict_lead_0_q_0.8413447460685429",
-            "predict_q_0.15865525393145707": "predict_lead_0_q_0.15865525393145707",
-            "predict_q_0.02275013194817921": "predict_lead_0_q_0.02275013194817921",
-            "predict_q_0.0013498980316301035": "predict_lead_0_q_0.0013498980316301035",
-            "predict_q_0.5": "predict_lead_0_mean",
-        }
-    )
-
-
 class ValidationModel(base.BaseEstimator, base.RegressorMixin):
     """Convenience class for building and running a MLPRegression model for anomaly
     detection. For a given channel, we take the top features and use all combinations of
@@ -238,14 +77,14 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
         Input data with channels as column names
     model_type : str (default='lasso')
         Could also be 'mlp'.
-    training_end_date : str (default = '2021-07-31 23:59:59')
+    training_end_date : datetime | str | None (default = None)
         Marks the endpoint of the training data and start of the test data
     epochs : int (default = 2)
         Number of epochs for MLP
     n_features : int (default = 5)
         Number of features to include in models + 1. So if you want to have 3 features
         in each sub-model this value should be 4.
-    n_consensus: Union[int, str] (default = 'all')
+    n_consensus: int | Literal["all"], (default = 'all')
         By default all sub-model predictions have to flag outliers, but you can also specify
         an integer of the number of models desired for consenus.
     outlier_window: int (default=1)
@@ -262,10 +101,10 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
         self,
         df: pd.DataFrame,
         model_type: str = "lasso",
-        training_end_date: str | None = None,
+        training_end_date: str | datetime | None = None,
         epochs: int = 2,
         n_features: int = 5,
-        n_consensus: Union[int, str] = "all",
+        n_consensus: int | Literal["all"] = "all",
         outlier_window: int = 3,
         outlier_limit: int = 3,
         use_precipitation_features: bool = False,
@@ -283,7 +122,7 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
         self.use_precipitation_features = use_precipitation_features
         self.learning_rate = learning_rate
 
-    def _get_training_end_date(self, training_end_date: str = None):
+    def _get_training_end_date(self, training_end_date: datetime | str | None = None):
         """We can either provide a dataframe with both training and test set, in
         which case the parameter `training_end_date` denotes the cut-off; or we can
         provide only a training set, in which case training_end_date should be None.
@@ -291,7 +130,7 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
 
         Parameters
         ----------
-        training_end_date: str (default=None)
+        training_end_date: datetime | str | None (default=None)
 
         Returns
         -------
@@ -303,7 +142,7 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
             return self.df.index.max()
         return training_end_date
 
-    def _train_test_split(self, channel: str, training_end_date: str = "2017-12-31 23:59:59"):
+    def _train_test_split(self, channel: str, training_end_date: datetime | str):
         """Split data into train and test sets based on datetime cutoff.
         Everything before the cutoff is training data, everything after is
         test data.
@@ -312,7 +151,7 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
         ----------
         channel: str
             Name of channel of interest (target variable)
-        training_end_date: str (default = '2017-12-31 23:59:59')
+        training_end_date: datetime | str
 
         Returns
         -------
@@ -321,10 +160,10 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
         X_test : pd.DataFrame
         y_test : pd.Series
         """
-        X_train = self.df.loc[:training_end_date, :].copy().reset_index(drop=True)
-        y_train = self.df.loc[:training_end_date, channel].copy().reset_index(drop=True)
-        X_test = self.df.loc[training_end_date:, :].copy().reset_index(drop=True)
-        y_test = self.df.loc[training_end_date:, channel].copy().reset_index(drop=True)
+        X_train = self.df.loc[:training_end_date, :].reset_index(drop=True)
+        y_train = self.df.loc[:training_end_date, channel].reset_index(drop=True)
+        X_test = self.df.loc[training_end_date:, :].reset_index(drop=True)
+        y_test = self.df.loc[training_end_date:, channel].reset_index(drop=True)
         self.n_samples_train = len(y_train)
         self.n_samples_test = len(y_test)
 
@@ -494,8 +333,7 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
         r2 : pd.DataFrame
             Contains r2 scores
         """
-        model, num_obs, pred, r2 = {}, {}, {}, {}
-        model[target_channel], pred[target_channel], r2[target_channel] = {}, {}, {}
+        model, num_obs, pred, r2 = {target_channel: {}}, {}, {target_channel: {}}, {target_channel: {}}
 
         # Get training and test data
         X_train, y_train, X_test, y_test = self._train_test_split(target_channel, self.training_end_date)
@@ -511,7 +349,7 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
         for leave_out_feature in feature_channels:
             feature_channel_subset = [c for c in feature_channels if c != leave_out_feature]
 
-            print(
+            logging.info(
                 f"\nTraining model for channel {target_channel} in time period from "
                 f"{X_train.index[0]} to {self.training_end_date}."
                 f"\n We use the following feature channels: {feature_channel_subset}"
@@ -530,7 +368,7 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
                 )
 
             # Evaluate
-            pred[target_channel][leave_out_feature] = _standardize_prediction_column_names(
+            pred[target_channel][leave_out_feature] = self._standardize_prediction_column_names(
                 model[target_channel][leave_out_feature].predict(X_test)
             )
 
@@ -551,13 +389,6 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
 
         return model, num_obs, pred, r2
 
-    def _flatten_output(self, output: dict[str, dict], name: str) -> dict[str, str]:
-        return {
-            f"{name}_target_{outer_key}_missing_feature_{inner_key}": f"{inner_value}"
-            for outer_key, inner_dict in output.items()
-            for inner_key, inner_value in inner_dict.items()
-        }
-
     def predict(
         self,
         X: pd.DataFrame,
@@ -572,15 +403,34 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
         r2 : pd.DataFrame
             Contains r2 scores
         """
-        pred = {}
-        pred[target_channel] = {}
-        X_test = X.loc[:, [c for c in X.columns if c != target_channel]].reset_index(drop=True)
+        pred = {target_channel: {}}
+        X_test = X.drop(columns=[target_channel]).reset_index(drop=True)
 
         feature_channels = self._get_feature_channels(target_channel)
 
         for leave_out_feature in feature_channels:
-            pred[target_channel][leave_out_feature] = _standardize_prediction_column_names(
+            pred[target_channel][leave_out_feature] = self._standardize_prediction_column_names(
                 self.model[target_channel][leave_out_feature].predict(X_test)
             )
 
         return pred
+
+    def _flatten_output(self, output: dict[str, dict], name: str) -> dict[str, str]:
+        return {
+            f"{name}_target_{outer_key}_missing_feature_{inner_key}": f"{inner_value}"
+            for outer_key, inner_dict in output.items()
+            for inner_key, inner_value in inner_dict.items()
+        }
+
+    def _standardize_prediction_column_names(self, y_hat):
+        return y_hat.rename(
+            columns={
+                "predict_q_0.9986501019683699": "predict_lead_0_q_0.9986501019683699",
+                "predict_q_0.9772498680518208": "predict_lead_0_q_0.9772498680518208",
+                "predict_q_0.8413447460685429": "predict_lead_0_q_0.8413447460685429",
+                "predict_q_0.15865525393145707": "predict_lead_0_q_0.15865525393145707",
+                "predict_q_0.02275013194817921": "predict_lead_0_q_0.02275013194817921",
+                "predict_q_0.0013498980316301035": "predict_lead_0_q_0.0013498980316301035",
+                "predict_q_0.5": "predict_lead_0_mean",
+            }
+        )

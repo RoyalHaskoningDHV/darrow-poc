@@ -19,6 +19,7 @@ from twinn_ml_interface.interface import ModelInterfaceV4
 @dataclass
 class LocalConfig:
     """Class for configuring model adhering to ModelInterfaceV4"""
+
     model: ModelInterfaceV4
     train_data_path: os.PathLike
     prediction_data_path: os.PathLike

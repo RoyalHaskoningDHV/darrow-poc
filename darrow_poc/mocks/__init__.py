@@ -1,7 +1,7 @@
 from .mocks import InfraConfigurationMock, ExecutorMock, LocalConfig
 
 
-__all__ = [ 
+__all__ = [
     "ExecutorMock",
     "InfraConfigurationMock",
     "LocalConfig",
