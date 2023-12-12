@@ -1,57 +1,123 @@
+import os
 import pandas as pd
+from typing import Any
 
-from darrow_poc.models import POCAnomaly
+from dataclasses import dataclass
 
-from twinn_ml_interface.objectmodels import MetaDataLogger, Configuration, InputData
+from twinn_ml_interface.input_data import InputData
+from twinn_ml_interface.objectmodels import (
+    Configuration,
+    MetaDataLogger,
+    RelativeType,
+    Unit,
+    UnitTag,
+    UnitTagTemplate,
+)
 from twinn_ml_interface.interface import ModelInterfaceV4
 
 
-# TODO (Steffen): Maybe missing info, test
-CONFIG = {
-    "model": POCAnomaly,
-    "data_path": "/my/path/data/data.parquet",
-    "model_path": "/my/path/model/",
-    "model_name": "my_model",
-    "predictions_path": "/my/path/predictions/predictions.parquet",
-}
+@dataclass
+class LocalConfig:
+    """Class for configuring model adhering to ModelInterfaceV4"""
+
+    model: ModelInterfaceV4
+    train_data_path: os.PathLike
+    prediction_data_path: os.PathLike
+    model_path: os.PathLike
+    model_name: str
+    predictions_path: os.PathLike = "/my/path/predictions/predictions.parquet"
 
 
-# TODO: Better config, with maybe some methods that return something?
-class ConfigurationMock:
-    target_name = "test:test"
+class InfraConfigurationMock(Configuration):
+    """Use to get information from hierarchy (rooted tree) and tenant.
 
-    def get_units(*args, **kwargs):
+    Not that important in this mock setting. We only need the `target_name`.
+    The rest is shown here as well for completeness. Not something you need
+    to implement, but something you can use. Note that for now we are not mocking
+    any of the output except `target_name`.
+    """
+
+    target_name = "stah:discharge"
+
+    def tenant(self) -> dict[str, Any]:
+        return
+
+    def tenant_config(self) -> dict[str, Any]:
+        """Get and cache the tenant_config."""
+        return None
+
+    def get_unit_properties(self, unit_name: str) -> dict[str, Any] | None:
+        """Retrieve the property of a certain unit.
+
+        Args:
+            unit_name (str): name of the unit to get properties for.
+
+        Returns:
+            dict[str, Any] | None: the property of the UnitTag if it exists.
+        """
+        return None
+
+    def get_units(self, unit_name: str, relative_path: list[RelativeType]) -> list[Unit] | None:
+        """Retrieve units from the hierarchy.
+
+        Args:
+            unit_name (str): name of the unit to search from.
+            relative_path (list[RelativeType]): a path to search for relative to the given unit.
+
+        Returns:
+            list[Unit] | None: the units.
+        """
+        return None
+
+    def get_unit_tags(self, unit_name: str, unit_tag_template: UnitTagTemplate) -> list[UnitTag]:
+        """Retrieve UnitTags from the hierarchy.
+
+        Args:
+            unit_name (str): name of the unit to search from.
+            unit_tag_template (UnitTagTemplate): a relative path from the given unit.
+
+        Returns:
+            list[UnitTag]: the UnitTags that were found.
+                You can easily convert them to strings by calling str() on them.
+        """
         return None
 
 
-# TODO: Add methods where we access the model attributes, like `model_category`
 class ExecutorMock:
+    """A mock executor, that mimics some of the behaviour of a real executor.
+
+    An executor is responsible for running a machine learning model during training
+    or predicting based on a `ModelInterfaceV4` compliant class in the `darrow-ml-platform`.
+
+    This mock executor performs both training and predicting, but only locally. Not all
+    aspects of a real executor are mocked, but the basic logic flow should be the same.
+    """
+
     metadata_logger = MetaDataLogger()
 
-    def __init__(self, config: dict = CONFIG):
-        self.config = config
+    def __init__(self, local_config: LocalConfig):
+        self.local_config = local_config
 
-    def _test_model_attributes(self, model_class):
-        # The isinstance check with the annotation protocol already does this,
-        # but just to be super clear that the actual exectutors expect these
-        return True
-        assert hasattr(self, "model_type_name"), "'model_type_name' attribute is missing!"
-        assert hasattr(self, "model_category"), "'model_category' attribute is missing!"
-        assert hasattr(self, "performance_value"), "'performance_value' attribute is missing!"
-        assert hasattr(self, "base_features"), "'base_features' attribute is missing!"
-        assert hasattr(self, "target"), "'target' attribute is missing!"
-
-    def init_train(self, str) -> tuple[ModelInterfaceV4, Configuration]:
-        model_class = self.config["model"]
-        config_api = ConfigurationMock()
-        return model_class, config_api
+    def _init_train(self) -> tuple[ModelInterfaceV4, Configuration]:
+        model_class = self.local_config.model
+        infra_config = InfraConfigurationMock()
+        return model_class, infra_config
 
     def get_training_data(
         self,
         model: ModelInterfaceV4,
-        config_api: Configuration | None = None,
+        infra_config: Configuration | None = None,
     ) -> InputData:
-        long_data = pd.read_parquet(self.config["train_data_path"])
+        """Get training data input for ML model
+
+        Args:
+            model (ModelInterfaceV4): ML model
+            infra_config (Configuration | None, optional): Used to get info from hierarchy and tenant
+
+        Returns:
+            InputData: Input data for ML model
+        """
+        long_data = pd.read_parquet(self.local_config.train_data_path)
         return InputData.from_long_df(long_data)
 
     def _write_model(self, model: ModelInterfaceV4) -> None:
@@ -59,55 +125,71 @@ class ExecutorMock:
         # cache before dumping the model. This means that MetaDataLogger contents won't be available
         # when loading the model for predictions
         self.metadata_logger.reset_cache()
-        model.dump(self.config["model_path"], self.config["model_name"])
+        model.dump(self.local_config.model_path, self.local_config.model_name)
 
-    def postprocess_model_results(self, model: ModelInterfaceV4):
+    def _postprocess_model_results(self, model: ModelInterfaceV4):
         model.base_features = None
         model.performance_value = None
 
     def write_results(self, model: ModelInterfaceV4):
+        """Save model to file.
+
+        Args:
+            model (ModelInterfaceV4): _description_
+        """
         self._write_model(model=model)
-        self.postprocess_model_results(model=model)
+        self._postprocess_model_results(model=model)
 
     def run_train_flow(self):
-        model_class, config_api = self.init_train(self.config)
-        self._test_model_attributes(model_class)
-        model = model_class.initialize(config_api, self.metadata_logger)
+        """Run training flow and cache trained model"""
+        model_class, infra_config = self._init_train()
+        model = model_class.initialize(infra_config, self.metadata_logger)
 
-        input_data = self.get_training_data(model, config_api)
+        input_data = self.get_training_data(model, infra_config)
         preprocessed_data = model.preprocess(input_data)
         model.train(preprocessed_data, save_performance=True)  # TODO (Team): discuss what save_performance stands for
 
         self.write_results(model)
 
     def load_model(self, model_class):
-        return model_class.load(self.config["model_path"], self.config["model_name"])
+        """Load saved ML model
 
-    def get_prediction_data(
-        self,
-        model: ModelInterfaceV4,
-    ) -> InputData:
-        long_data = pd.read_parquet(self.config["prediction_data_path"])
+        Args:
+            model_class (ModelInterfaceV4): Name of the model class
+
+        Returns:
+            ModelInterfaceV4: ML model
+        """
+        return model_class.load(self.local_config.model_path, self.local_config.model_name)
+
+    def get_prediction_data(self) -> InputData:
+        """Get input data for predicting
+
+        Returns:
+            InputData: Input data for ML model
+        """
+        long_data = pd.read_parquet(self.local_config.prediction_data_path)
         return InputData.from_long_df(long_data)
 
     def write_predictions(self, predictions: pd.DataFrame):
         """Write predictions to local path. When running the actual infrastructure,
         predictions are uploaded to the azure data lake.
 
-        Parameters
-        ----------
-        predictions: pd.DataFrame
+        Args:
+            predictions (pd.DataFrame): Predictions made by ML Model
         """
-        predictions.to_parquet(self.config["predictions_path"])
+        predictions.to_parquet(self.local_config.predictions_path)
 
     def run_predict_flow(self):
-        model: ModelInterfaceV4 = self.load_model(self.config["model"])
+        """Run predict flow"""
+        model: ModelInterfaceV4 = self.load_model(self.local_config.model)
 
-        input_data = self.get_prediction_data(model)
+        input_data = self.get_prediction_data()
         preprocessed_data = model.preprocess(input_data)
-        predictions = model.predict(preprocessed_data)
-        self.write_predictions(predictions)
+        predictions, _ = model.predict(preprocessed_data)
+        self.write_predictions(pd.concat(predictions))
 
     def run_full_flow(self):
+        """Run both train and predict flows"""
         self.run_train_flow()
         self.run_predict_flow()

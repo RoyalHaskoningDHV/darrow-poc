@@ -1,37 +1,36 @@
-from __future__ import annotations
 from os import PathLike
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 
 import dill as pickle
+import numpy as np
 import pandas as pd
 
+from twinn_ml_interface.input_data import InputData
 from twinn_ml_interface.interface import ModelInterfaceV4
 from twinn_ml_interface.objectmodels import (
-    AvailabilityLevel,
     Configuration,
     DataLabelConfigTemplate,
     DataLevel,
-    InputData,
     MetaDataLogger,
     ModelCategory,
-    RelativeType,
+    PredictionType,
     Tag,
+    TrainWindowSizePriority,
     UnitTagTemplate,
     UnitTag,
     Unit,
     WindowViability,
 )
 
-from .models import train_validator
+from .anomaly_detection import get_anomalies
+from .validation_model import ValidationModel
 
 
 class POCAnomaly:
     model_type_name: str = "pocanomaly"
     # Model category is based on the output of the model.
     model_category: ModelCategory = ModelCategory.ANOMALY
-    # Number between (-inf, inf) indicating the model performance.
-    performance_value: float | None = 999
     # Features used to train the model. If not supplied, equal to get_data_config_template().
     base_features: dict[DataLevel, list[UnitTag]] | None = None
     # This is only needed when get_target_template returns UnitTagTemplate
@@ -42,34 +41,36 @@ class POCAnomaly:
 
     @staticmethod
     def get_target_template() -> UnitTagTemplate | UnitTag:
-        """Get the name of the target tag to train the model.
+        """Get the UnitTag that will be the target of the model.
 
         Returns:
-            UnitTagTemplate | UnitTag: The unit tag of the model target, either as template or as UnitTag.
+            UnitTagTemplate | UnitTag: The unit tag of the model target,
+            either as template or as literal.
         """
-        return UnitTag(Unit("STAHROER", "DISCHARGE_STATION", True), Tag("DISCHARGE"))
+        return UnitTag(Unit("STAH", "DISCHARGE_STATION", True), Tag("DISCHARGE"))
 
     @staticmethod
     def get_data_config_template() -> list[DataLabelConfigTemplate] | list[UnitTag]:
         """The specification of data needed to train and predict with the model.
+
+        NOTE:
+        Using DataLabelConfigTemplate is more complicated, but allows refering to relative relationships
+        between units (e.g. selecting all children of the target). Specifying UnitTags directly is simpler,
+        but requires you to know the exact units necessary for the model.
 
         Result:
             list[DataLabelConfigTemplate] | list[UnitTag]: The data needed to train and predict with the model,
                 either as template or as list of literals.
         """
         return [
-            DataLabelConfigTemplate(
-                data_level=DataLevel.SENSOR,
-                unit_tag_templates=[UnitTagTemplate([RelativeType.CHILDREN], [Tag("DISCHARGE")])],
-                availability_level=AvailabilityLevel.available_until_now,
-            ),
-            DataLabelConfigTemplate(
-                data_level=DataLevel.WEATHER,
-                unit_tag_templates=[
-                    UnitTagTemplate([RelativeType.CHILDREN], [Tag("PRECIPITATION"), Tag("EVAPORATION")])
-                ],
-                availability_level=AvailabilityLevel.available_until_now,
-            ),
+            UnitTag.from_string("altenburg1:disc"),
+            UnitTag.from_string("eschweiler:disc"),
+            UnitTag.from_string("herzogenrath1:disc"),
+            UnitTag.from_string("juelich:disc"),
+            UnitTag.from_string("stah:disc"),
+            UnitTag.from_string("evap:evap"),
+            UnitTag.from_string("middenroer:prec"),
+            UnitTag.from_string("urft:prec"),
         ]
 
     @staticmethod
@@ -82,31 +83,15 @@ class POCAnomaly:
         return UnitTag(Unit("STAHROER", "DISCHARGE_STATION", True), Tag("DISCHARGE_FORECAST"))
 
     @staticmethod
-    def get_unit_properties_template() -> list[Tag]:
-        """Unit properties to get from the units specified in data_config.
-
-        Returns:
-            list[Tag]: The tags to request.
-        """
-        return []
-
-    @staticmethod
-    def get_unit_hierarchy_template() -> dict[str, list[RelativeType]]:
-        """Request some units from the hierarchy in a dictionary.
-
-        Returns:
-            dict[str, list[RelativeType]]: An identifier for the units to get,
-                and their relative path from the target unit.
-        """
-        return {}
-
-    @staticmethod
-    def get_train_window_finder_config_template() -> list[DataLabelConfigTemplate] | None:
+    def get_train_window_finder_config_template() -> (
+        tuple[list[DataLabelConfigTemplate], TrainWindowSizePriority] | None
+    ):
         """The config for running the train window finder.
 
         Returns:
-            list[DataLabelConfigTemplate] | None: a template for getting the tags needed to run the train window
-                finder. Defaults to None, then no train window finder will be used.
+            list[DataLabelConfigTemplate] | None: a template for getting the tags needed to run
+                the train window finder. Defaults to None, then no train window finder will be
+                used.
         """
         return None
 
@@ -123,10 +108,10 @@ class POCAnomaly:
             logger (MetaDataLogger): A MetaDataLogger object to write logs to MLflow later.
             tenant_config (dict[str, Any]): Tenant specific configuration.
         """
-        stahmodel = cls(configuration.target_name)
-        stahmodel.configuration = configuration
-        stahmodel.logger = logger
-        return stahmodel
+        model = cls(configuration.target_name)
+        model.configuration = configuration
+        model.logger = logger
+        return model
 
     def preprocess(self, input_data: InputData) -> InputData:
         """Preprocess input data before training.
@@ -154,29 +139,36 @@ class POCAnomaly:
                 bool: Whether the data can be used for training. Default always true.
                 str: Additional information about the window.
         """
-        return True, "Input data is valid."
+        return {PredictionType.ML: (True, None)}
 
-    def train(self, input_data: InputData, **kwargs) -> None:
+    def train(self, input_data: InputData, **kwargs) -> tuple[float, Any]:
         """Train a model.
 
         Args:
             input_data (InputData): Preprocessed and validated training data.
 
         Returns:
-            dict[str, Any] | None: Optionally some logs collected during training.
+            float: Number between (-inf, inf) indicating the model performance
+            Any: Any other object that can be used for testing. This object will be ignored
+                by the infrastructure
         """
-        # Currently not dividing into train and test sets to speed things up
         train = pd.concat(input_data.values(), axis=1)
-        validator, timestamp_validator = train_validator(
+        validator = ValidationModel(
             train,
-            n_features=5,
             model_type="lasso",
-            testing=False,
+            n_features=5,
             use_precipitation_features=False,
+            training_end_date="2010-01-04 00:00:00",
         )
-        self._model = validator
+        _, num_obs, _, r2_by_target = validator.fit_and_evaluate(str(self.target))
+        r2_by_missing_sensor = validator._flatten_output(r2_by_target, "r2")
+        self.logger.log_params(r2_by_missing_sensor)  # This will be logged to mlflow
+        self.logger.log_params({f"samples_{k}": v for k, v in num_obs.items()})
 
-    def predict(self, input_data: InputData, **kwargs) -> list[pd.DataFrame]:
+        self._model = validator
+        return np.mean([float(x) for x in r2_by_missing_sensor.values()]), None
+
+    def predict(self, input_data: InputData, **kwargs) -> tuple[list[pd.DataFrame], Any]:
         """Run a prediction with a trained model.
 
         Args:
@@ -184,12 +176,16 @@ class POCAnomaly:
 
         Returns:
             list[pd.DataFrame]: List of dataframes with predictions
+            Any: Any other object that can be used for testing. This object will be ignored
+                by the infrastructure
         """
+        target_channel = str(self.target)
         model = self._model
         X = pd.concat(input_data.values(), axis=1)
-        X_removed_anomalies = model.predict(X)
+        predictions = model.predict(X, target_channel)
+        anomalies = get_anomalies(predictions, X, target_channel)
 
-        return X_removed_anomalies
+        return [pd.DataFrame({target_channel: anomalies})], None
 
     def dump(self, foldername: PathLike, filename: str) -> None:
         """
@@ -204,7 +200,6 @@ class POCAnomaly:
         """
         with open(Path(foldername) / (filename + ".pkl"), "wb") as f:
             pickle.dump(self, f)
-        return None
 
     @classmethod
     def load(cls, foldername: PathLike, filename: str) -> Callable:

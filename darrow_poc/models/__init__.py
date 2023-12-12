@@ -1,4 +1,4 @@
-from .modelinterface import POCAnomaly
+from .poc import POCAnomaly
 
 __all__ = [
     "POCAnomaly",

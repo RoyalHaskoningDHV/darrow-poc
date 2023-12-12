@@ -1,8 +1,8 @@
 import logging
 from pathlib import Path
 
-from darrow_poc.models.modelinterface import POCAnomaly
-from darrow_poc.mocks import ExecutorMock
+from darrow_poc.models.poc import POCAnomaly
+from darrow_poc.mocks import LocalConfig, ExecutorMock
 
 import unittest
 
@@ -16,14 +16,14 @@ BASE_DIR = Path(__file__).parent.parent
 
 class TestModelWithLocalExecutor(unittest.TestCase):
     def test_model_with_local_executor(self):
-        config = {
-            "model": POCAnomaly,
-            "train_data_path": BASE_DIR / "tests/testing_data/train.parquet",
-            "prediction_data_path": BASE_DIR / "tests/testing_data/test.parquet",
-            "model_path": BASE_DIR / "output/models",
-            "model_name": "poc_model",
-            "predictions_path": BASE_DIR / "output/predictions/predictions.parquet",
-        }
+        config = LocalConfig(
+            POCAnomaly,
+            BASE_DIR / "tests/testing_data/train.parquet",
+            BASE_DIR / "tests/testing_data/test.parquet",
+            BASE_DIR / "output/models",
+            "poc_model",
+            BASE_DIR / "output/predictions/predictions.parquet",
+        )
         executor = ExecutorMock(config)
         executor.run_full_flow()
         assert True
