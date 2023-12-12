@@ -262,7 +262,7 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
         self,
         df: pd.DataFrame,
         model_type: str = "lasso",
-        training_end_date: str = None,
+        training_end_date: str | None = None,
         epochs: int = 2,
         n_features: int = 5,
         n_consensus: Union[int, str] = "all",

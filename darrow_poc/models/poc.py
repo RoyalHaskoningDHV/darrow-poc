@@ -1,4 +1,3 @@
-from __future__ import annotations
 from os import PathLike
 from pathlib import Path
 from typing import Any, Callable
@@ -200,8 +199,6 @@ class POCAnomaly:
         """
         with open(Path(foldername) / (filename + ".pkl"), "wb") as f:
             pickle.dump(self, f)
-
-        return None
 
     @classmethod
     def load(cls, foldername: PathLike, filename: str) -> Callable:

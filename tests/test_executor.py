@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 from darrow_poc.models.poc import POCAnomaly
-from darrow_poc.mocks import ModelConfig, ExecutorMock
+from darrow_poc.mocks import LocalConfig, ExecutorMock
 
 import unittest
 
@@ -16,7 +16,7 @@ BASE_DIR = Path(__file__).parent.parent
 
 class TestModelWithLocalExecutor(unittest.TestCase):
     def test_model_with_local_executor(self):
-        config = ModelConfig(
+        config = LocalConfig(
             POCAnomaly,
             BASE_DIR / "tests/testing_data/train.parquet",
             BASE_DIR / "tests/testing_data/test.parquet",

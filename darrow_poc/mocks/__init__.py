@@ -1,8 +1,8 @@
-from .mocks import ConfigurationMock, ModelConfig, ExecutorMock
+from .mocks import InfraConfigurationMock, ExecutorMock, LocalConfig
 
 
-__all__ = [
-    "ModelConfig", 
-    "ConfigurationMock",
+__all__ = [ 
     "ExecutorMock",
+    "InfraConfigurationMock",
+    "LocalConfig",
 ]
