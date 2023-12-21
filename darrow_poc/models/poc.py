@@ -46,7 +46,10 @@ class POCAnomaly:
             UnitTagTemplate | UnitTag: The unit tag of the model target,
             either as template or as literal.
         """
-        return UnitTag(Unit("STAH", "DISCHARGE_STATION", True), Tag("DISCHARGE"))
+        return UnitTag(
+            Unit("DARROW_POC_DISCHARGE_STAH", "PURE_DARROW_POC_DISCHARGE", True),
+            Tag("PURE_DARROW_POC_DISCHARGE_MEASUREMENT"),
+        )
 
     @staticmethod
     def get_data_config_template() -> list[DataLabelConfigTemplate] | list[UnitTag]:
@@ -62,14 +65,14 @@ class POCAnomaly:
                 either as template or as list of literals.
         """
         return [
-            UnitTag.from_string("altenburg1:disc"),
-            UnitTag.from_string("eschweiler:disc"),
-            UnitTag.from_string("herzogenrath1:disc"),
-            UnitTag.from_string("juelich:disc"),
-            UnitTag.from_string("stah:disc"),
-            UnitTag.from_string("evap:evap"),
-            UnitTag.from_string("middenroer:prec"),
-            UnitTag.from_string("urft:prec"),
+            UnitTag.from_string("darrow_poc_discharge_altenburg1:pure_darrow_poc_discharge_measurement"),
+            UnitTag.from_string("darrow_poc_discharge_eschweiler:pure_darrow_poc_discharge_measurement"),
+            UnitTag.from_string("darrow_poc_discharge_herzogenrath1:pure_darrow_poc_discharge_measurement"),
+            UnitTag.from_string("darrow_poc_discharge_juelich:pure_darrow_poc_discharge_measurement"),
+            UnitTag.from_string("darrow_poc_discharge_stah:pure_darrow_poc_discharge_measurement"),
+            UnitTag.from_string("darrow_poc_evaporation_evap:pure_darrow_poc_evaporation_measurement"),
+            UnitTag.from_string("darrow_poc_precipitation_middenroer:pure_darrow_poc_precipitation_measurement"),
+            UnitTag.from_string("darrow_poc_precipitation_urft:pure_darrow_poc_precipitation_measurement"),
         ]
 
     @staticmethod
@@ -79,7 +82,10 @@ class POCAnomaly:
         Returns:
            UnitTagTemplate, UnitTag: The unit tag of the model's output, either as template or as literal.
         """
-        return UnitTag(Unit("STAHROER", "DISCHARGE_STATION", True), Tag("DISCHARGE_FORECAST"))
+        UnitTag(
+            Unit("DARROW_POC_DISCHARGE_STAH", "PURE_DARROW_POC_DISCHARGE", True),
+            Tag("PURE_DARROW_POC_DISCHARGE_ANOMALY"),
+        )
 
     @staticmethod
     def get_train_window_finder_config_template() -> (
