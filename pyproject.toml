@@ -3,9 +3,9 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project.urls]
-homepage = "https://github.com/RoyalHaskoningDHV/twinn-ml-example"
-issues = "https://github.com/RoyalHaskoningDHV/twinn-ml-example/issues"
-discussions = "https://github.com/RoyalHaskoningDHV/twinn-ml-example/discussions"
+homepage = "https://github.com/RoyalHaskoningDHV/darrow-poc"
+issues = "https://github.com/RoyalHaskoningDHV/darrow-poc/issues"
+discussions = "https://github.com/RoyalHaskoningDHV/darrow-poc/discussions"
 
 [project]
 name = "darrow-poc"
