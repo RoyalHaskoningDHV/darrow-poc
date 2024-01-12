@@ -151,16 +151,25 @@ class ExecutorMock:
 
         self.write_results(model)
 
-    def load_model(self, model_class):
+    def load_model(
+        self, model_class: ModelInterfaceV4, infra_config: Configuration, metadata_logger: MetaDataLogger
+    ) -> ModelInterfaceV4:
         """Load saved ML model
 
         Args:
             model_class (ModelInterfaceV4): Name of the model class
+            infra_config (Configuration): Infrastructure configuration
+            metadata_logger (MetaDataLogger): New logger used for predictions
 
         Returns:
             ModelInterfaceV4: ML model
         """
-        return model_class.load(self.local_config.model_path, self.local_config.model_name)
+        return model_class.load(
+            self.local_config.model_path,
+            self.local_config.model_name,
+            infra_config,
+            metadata_logger,
+        )
 
     def get_prediction_data(self) -> InputData:
         """Get input data for predicting
@@ -182,7 +191,9 @@ class ExecutorMock:
 
     def run_predict_flow(self):
         """Run predict flow"""
-        model: ModelInterfaceV4 = self.load_model(self.local_config.model)
+        infra_config = InfraConfigurationMock()
+        metadata_logger = MetaDataLogger()
+        model: ModelInterfaceV4 = self.load_model(self.local_config.model, infra_config, metadata_logger)
 
         input_data = self.get_prediction_data()
         preprocessed_data = model.preprocess(input_data)

@@ -104,8 +104,8 @@ class POCAnomaly:
         tedious.
 
         Args:
+            configuration (Configuration): an API-like object to retrieve configuration.
             logger (MetaDataLogger): A MetaDataLogger object to write logs to MLflow later.
-            tenant_config (dict[str, object]): Tenant specific configuration.
         """
         model = cls(configuration.target_name)
         model.configuration = configuration
@@ -200,18 +200,23 @@ class POCAnomaly:
         with open(Path(foldername) / (filename + ".pkl"), "wb") as f:
             pickle.dump(self, f)
 
-    @classmethod
-    def load(cls, foldername: PathLike, filename: str) -> ModelInterfaceV4:
+    @staticmethod
+    def load(
+        foldername: PathLike, filename: str, configuration: Configuration, logger: MetaDataLogger
+    ) -> ModelInterfaceV4:
         """
         Reads the following files:
-        * filename.pkl
-        * filename.h5
+        * prefix.pkl
+        * prefix.h5
         from the folder given by foldername.
-        Output is an entire instance of the fitted model that was saved
+        Output is an entire instance of the fitted model that was saved.
+        Just as with `initialize`, configuration and logger are passed for you to use.
 
         Args:
             foldername (PathLike): configurable folder name
             filename (str): name of the file
+            configuration (Configuration): an API-like object to retrieve configuration.
+            logger (MetaDataLogger): A MetaDataLogger object to write logs to MLflow later.
 
         Returns:
             Model class with everything (except data) contained within to call the
@@ -219,5 +224,8 @@ class POCAnomaly:
         """
         with open(Path(foldername) / (filename + ".pkl"), "rb") as f:
             model = pickle.load(f)
+
+        model.configuration = configuration
+        model.logger = logger
 
         return model
