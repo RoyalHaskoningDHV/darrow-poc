@@ -49,7 +49,7 @@ class POCAnomaly:
         return UnitTag(Unit("STAH", "DISCHARGE_STATION", True), Tag("DISCHARGE"))
 
     @staticmethod
-    def get_data_config_template() -> list[DataLabelConfigTemplate] | list[UnitTag]:
+    def get_data_config_template() -> list[DataLabelConfigTemplate]:
         """The specification of data needed to train and predict with the model.
 
         NOTE:
@@ -58,18 +58,23 @@ class POCAnomaly:
         but requires you to know the exact units necessary for the model.
 
         Result:
-            list[DataLabelConfigTemplate] | list[UnitTag]: The data needed to train and predict with the model,
-                either as template or as list of literals.
+            list[DataLabelConfigTemplate]: The data needed to train and predict with the model,
+                either as template.
         """
         return [
-            UnitTag.from_string("altenburg1:disc"),
-            UnitTag.from_string("eschweiler:disc"),
-            UnitTag.from_string("herzogenrath1:disc"),
-            UnitTag.from_string("juelich:disc"),
-            UnitTag.from_string("stah:disc"),
-            UnitTag.from_string("evap:evap"),
-            UnitTag.from_string("middenroer:prec"),
-            UnitTag.from_string("urft:prec"),
+            DataLabelConfigTemplate(
+                data_level=DataLevel.SENSOR,
+                unit_tag_templates=[
+                    UnitTag.from_string("altenburg1:disc"),
+                    UnitTag.from_string("eschweiler:disc"),
+                    UnitTag.from_string("herzogenrath1:disc"),
+                    UnitTag.from_string("juelich:disc"),
+                    UnitTag.from_string("stah:disc"),
+                    UnitTag.from_string("evap:evap"),
+                    UnitTag.from_string("middenroer:prec"),
+                    UnitTag.from_string("urft:prec"),
+                ],
+            ),
         ]
 
     @staticmethod
