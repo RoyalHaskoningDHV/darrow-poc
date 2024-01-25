@@ -46,7 +46,7 @@ class POCAnomaly:
             UnitTagTemplate | UnitTag: The unit tag of the model target,
             either as template or as literal.
         """
-        return UnitTag(Unit("STAH", "DISCHARGE_STATION", True), Tag("DISCHARGE"))
+        return UnitTag(Unit("DARROW_POC_DISCHARGE_STAH", "PURE_DARROW_POC_DISCHARGE", True), Tag("DISCHARGE"))
 
     @staticmethod
     def get_data_config_template() -> list[DataLabelConfigTemplate]:
@@ -65,14 +65,14 @@ class POCAnomaly:
             DataLabelConfigTemplate(
                 data_level=DataLevel.SENSOR,
                 unit_tag_templates=[
-                    UnitTag.from_string("altenburg1:disc"),
-                    UnitTag.from_string("eschweiler:disc"),
-                    UnitTag.from_string("herzogenrath1:disc"),
-                    UnitTag.from_string("juelich:disc"),
-                    UnitTag.from_string("stah:disc"),
-                    UnitTag.from_string("evap:evap"),
-                    UnitTag.from_string("middenroer:prec"),
-                    UnitTag.from_string("urft:prec"),
+                    UnitTag.from_string("DARROW_POC_DISCHARGE_ALTENBURG1:MEASUREMENT"),
+                    UnitTag.from_string("DARROW_POC_DISCHARGE_ESCHWEILER:MEASUREMENT"),
+                    UnitTag.from_string("DARROW_POC_DISCHARGE_HERZOGENRATH1:MEASUREMENT"),
+                    UnitTag.from_string("DARROW_POC_DISCHARGE_JUELICH:MEASUREMENT"),
+                    UnitTag.from_string("DARROW_POC_DISCHARGE_STAH:MEASUREMENT"),
+                    UnitTag.from_string("DARROW_POC_EVAPORATION_EVAP:MEASUREMENT"),
+                    UnitTag.from_string("DARROW_POC_PRECIPITATION_MIDDENROER:MEASUREMENT"),
+                    UnitTag.from_string("DARROW_POC_PRECIPITATION_URFT:MEASUREMENT"),
                 ],
             ),
         ]
@@ -84,7 +84,7 @@ class POCAnomaly:
         Returns:
            UnitTagTemplate, UnitTag: The unit tag of the model's output, either as template or as literal.
         """
-        return UnitTag(Unit("STAHROER", "DISCHARGE_STATION", True), Tag("DISCHARGE_FORECAST"))
+        return UnitTag(Unit("DARROW_POC_DISCHARGE_STAH", "PURE_DARROW_POC_DISCHARGE", True), Tag("DISCHARGE_FORECAST"))
 
     @staticmethod
     def get_train_window_finder_config_template() -> (
