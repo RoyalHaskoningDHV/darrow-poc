@@ -46,7 +46,7 @@ class POCAnomaly:
             UnitTagTemplate | UnitTag: The unit tag of the model target,
             either as template or as literal.
         """
-        return UnitTag(Unit("DARROW_POC_DISCHARGE_STAH", "PURE_DARROW_POC_DISCHARGE", True), Tag("DISCHARGE"))
+        return UnitTag(Unit("DARROW_POC_DISCHARGE_STAH", "PURE_DARROW_POC_DISCHARGE", True), Tag("MEASUREMENT"))
 
     @staticmethod
     def get_data_config_template() -> list[DataLabelConfigTemplate]:
@@ -84,7 +84,7 @@ class POCAnomaly:
         Returns:
            UnitTagTemplate, UnitTag: The unit tag of the model's output, either as template or as literal.
         """
-        return UnitTag(Unit("DARROW_POC_DISCHARGE_STAH", "PURE_DARROW_POC_DISCHARGE", True), Tag("DISCHARGE_FORECAST"))
+        return UnitTag(Unit("DARROW_POC_DISCHARGE_STAH", "PURE_DARROW_POC_DISCHARGE", True), Tag("FORECAST"))
 
     @staticmethod
     def get_train_window_finder_config_template() -> (

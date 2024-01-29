@@ -112,7 +112,7 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
     ):
         self.df = df.copy()
         self.model_type = model_type
-        self.discharge_channels = [c for c in self.df.columns if "discharge" in c]
+        self.discharge_channels = [c for c in self.df.columns if "discharge" in c.lower()]
         self.training_end_date = self._get_training_end_date(training_end_date)
         self.epochs = epochs
         self.n_features = n_features
