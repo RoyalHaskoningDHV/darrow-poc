@@ -33,8 +33,8 @@ def engineer_steps(channel: str, channels: list):
     list
         List of feature engineering steps to perform
     """
-    other_discharge_channels = [c for c in channels if (c != channel) & ("discharge" in c)]
-    precipitation_channels = [c for c in channels if "precip" in c]
+    other_discharge_channels = [c for c in channels if (c != channel) & ("discharge" in c.lower())]
+    precipitation_channels = [c for c in channels if "precip" in c.lower()]
 
     discharge_step = (
         "lag_features_discharge_channels",
