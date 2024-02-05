@@ -1,5 +1,8 @@
 # Changelog
 
+## Version 0.1.3
+- Make logging to MLflow a little nicer and avoid errors due to cut-off column names.
+
 ## Version 0.1.2
 - Adapt to `twinn-ml-interface v0.2.7`.
 - Only allow returning `list[DataLabelConfigTemplate]` in interface method `get_data_config_template`.

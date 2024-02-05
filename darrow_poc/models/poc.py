@@ -156,6 +156,9 @@ class POCAnomaly:
             object: Any other object that can be used for testing. This object will be ignored
                 by the infrastructure
         """
+        def prep_string_for_mlflow(s: str) -> str:
+            return s.replace(":MEASUREMENT", "").replace("DARROW_POC_", "")
+
         train = pd.concat(input_data.values(), axis=1)
         validator = ValidationModel(
             train,
@@ -166,8 +169,12 @@ class POCAnomaly:
         )
         _, num_obs, _, r2_by_target = validator.fit_and_evaluate(str(self.target))
         r2_by_missing_sensor = validator._flatten_output(r2_by_target, "r2")
-        self.logger.log_params(r2_by_missing_sensor)  # This will be logged to mlflow
-        self.logger.log_params({f"samples_{k}": v for k, v in num_obs.items()})
+        r2_log = {
+            prep_string_for_mlflow(k): prep_string_for_mlflow(v)
+            for k,v in r2_by_missing_sensor.items()
+        }
+        self.logger.log_params(r2_log)  # This will be logged to mlflow
+        self.logger.log_params({f"samples_{prep_string_for_mlflow(k)}": str(v) for k, v in num_obs.items()})
 
         self._model = validator
         return np.mean([float(x) for x in r2_by_missing_sensor.values()]), None
