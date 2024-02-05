@@ -45,7 +45,7 @@ jobs:
 
   - task: TwineAuthenticate@1
     inputs:
-      artifactFeed: 'SAM/SAM'
+      artifactFeed: 'DARROW/darrow'
 
-  - script: twine upload -r SAM --config-file $(PYPIRC_PATH) dist/*.whl
+  - script: twine upload -r darrow --config-file $(PYPIRC_PATH) dist/*.whl
     displayName: 'Upload package'
