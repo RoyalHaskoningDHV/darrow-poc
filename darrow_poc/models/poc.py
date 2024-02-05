@@ -46,10 +46,10 @@ class POCAnomaly:
             UnitTagTemplate | UnitTag: The unit tag of the model target,
             either as template or as literal.
         """
-        return UnitTag(Unit("STAH", "DISCHARGE_STATION", True), Tag("DISCHARGE"))
+        return UnitTag(Unit("DARROW_POC_DISCHARGE_STAH", "PURE_DARROW_POC_DISCHARGE", True), Tag("MEASUREMENT"))
 
     @staticmethod
-    def get_data_config_template() -> list[DataLabelConfigTemplate] | list[UnitTag]:
+    def get_data_config_template() -> list[DataLabelConfigTemplate]:
         """The specification of data needed to train and predict with the model.
 
         NOTE:
@@ -58,18 +58,23 @@ class POCAnomaly:
         but requires you to know the exact units necessary for the model.
 
         Result:
-            list[DataLabelConfigTemplate] | list[UnitTag]: The data needed to train and predict with the model,
-                either as template or as list of literals.
+            list[DataLabelConfigTemplate]: The data needed to train and predict with the model,
+                either as template.
         """
         return [
-            UnitTag.from_string("altenburg1:disc"),
-            UnitTag.from_string("eschweiler:disc"),
-            UnitTag.from_string("herzogenrath1:disc"),
-            UnitTag.from_string("juelich:disc"),
-            UnitTag.from_string("stah:disc"),
-            UnitTag.from_string("evap:evap"),
-            UnitTag.from_string("middenroer:prec"),
-            UnitTag.from_string("urft:prec"),
+            DataLabelConfigTemplate(
+                data_level=DataLevel.SENSOR,
+                unit_tag_templates=[
+                    UnitTag.from_string("DARROW_POC_DISCHARGE_ALTENBURG1:MEASUREMENT"),
+                    UnitTag.from_string("DARROW_POC_DISCHARGE_ESCHWEILER:MEASUREMENT"),
+                    UnitTag.from_string("DARROW_POC_DISCHARGE_HERZOGENRATH1:MEASUREMENT"),
+                    UnitTag.from_string("DARROW_POC_DISCHARGE_JUELICH:MEASUREMENT"),
+                    UnitTag.from_string("DARROW_POC_DISCHARGE_STAH:MEASUREMENT"),
+                    UnitTag.from_string("DARROW_POC_EVAPORATION_EVAP:MEASUREMENT"),
+                    UnitTag.from_string("DARROW_POC_PRECIPITATION_MIDDENROER:MEASUREMENT"),
+                    UnitTag.from_string("DARROW_POC_PRECIPITATION_URFT:MEASUREMENT"),
+                ],
+            ),
         ]
 
     @staticmethod
@@ -79,7 +84,7 @@ class POCAnomaly:
         Returns:
            UnitTagTemplate, UnitTag: The unit tag of the model's output, either as template or as literal.
         """
-        return UnitTag(Unit("STAHROER", "DISCHARGE_STATION", True), Tag("DISCHARGE_FORECAST"))
+        return UnitTag(Unit("DARROW_POC_DISCHARGE_STAH", "PURE_DARROW_POC_DISCHARGE", True), Tag("FORECAST"))
 
     @staticmethod
     def get_train_window_finder_config_template() -> (
@@ -151,6 +156,10 @@ class POCAnomaly:
             object: Any other object that can be used for testing. This object will be ignored
                 by the infrastructure
         """
+
+        def prep_string_for_mlflow(s: str) -> str:
+            return s.replace(":MEASUREMENT", "").replace("DARROW_POC_", "")
+
         train = pd.concat(input_data.values(), axis=1)
         validator = ValidationModel(
             train,
@@ -161,8 +170,9 @@ class POCAnomaly:
         )
         _, num_obs, _, r2_by_target = validator.fit_and_evaluate(str(self.target))
         r2_by_missing_sensor = validator._flatten_output(r2_by_target, "r2")
-        self.logger.log_params(r2_by_missing_sensor)  # This will be logged to mlflow
-        self.logger.log_params({f"samples_{k}": v for k, v in num_obs.items()})
+        r2_log = {prep_string_for_mlflow(k): prep_string_for_mlflow(v) for k, v in r2_by_missing_sensor.items()}
+        self.logger.log_params(r2_log)  # This will be logged to mlflow
+        self.logger.log_params({f"samples_{prep_string_for_mlflow(k)}": str(v) for k, v in num_obs.items()})
 
         self._model = validator
         return np.mean([float(x) for x in r2_by_missing_sensor.values()]), None

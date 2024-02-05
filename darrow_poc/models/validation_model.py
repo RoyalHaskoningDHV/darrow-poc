@@ -33,8 +33,8 @@ def engineer_steps(channel: str, channels: list):
     list
         List of feature engineering steps to perform
     """
-    other_discharge_channels = [c for c in channels if (c != channel) & ("discharge" in c)]
-    precipitation_channels = [c for c in channels if "precip" in c]
+    other_discharge_channels = [c for c in channels if (c != channel) & ("discharge" in c.lower())]
+    precipitation_channels = [c for c in channels if "precip" in c.lower()]
 
     discharge_step = (
         "lag_features_discharge_channels",
@@ -112,7 +112,7 @@ class ValidationModel(base.BaseEstimator, base.RegressorMixin):
     ):
         self.df = df.copy()
         self.model_type = model_type
-        self.discharge_channels = [c for c in self.df.columns if "discharge" in c]
+        self.discharge_channels = [c for c in self.df.columns if "discharge" in c.lower()]
         self.training_end_date = self._get_training_end_date(training_end_date)
         self.epochs = epochs
         self.n_features = n_features
