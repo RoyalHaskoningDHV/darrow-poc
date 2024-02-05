@@ -1,6 +1,7 @@
 # Changelog
 
 ## Version 0.1.3
+- Adjust to new configuration in myaquasuite.
 - Make logging to MLflow a little nicer and avoid errors due to cut-off column names.
 
 ## Version 0.1.2
