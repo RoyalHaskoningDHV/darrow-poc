@@ -2,6 +2,10 @@
 
 Documentation and code for onboarding a timeseries machine learning model to the `darrow-ml-platform`. The `darrow-ml-platform` is the infrastructure to deploy machine learning models for the `DARROW` project, train models and make predictions. You can use the example model `POCAnomaly` in `models/poc.py` as a starting point for onboarding your own models.
 
+Author: Royal HaskoningDHV
+
+Email: ruud.kassing@rhdhv.com, jesse.de.ruijter@rhdhv.com, miguel.hernandez@rhdhv.com, steffen.burgers@rhdhv.com, pierpaolo.lucarelli@rhdhv.com
+
 ## Hierarchy data model
 
 The data __hierarchy__ is represented by a __rooted tree__ that mimics the real world (usually physical) relationships inherent in the data. This is easiest to understand with an example:
@@ -113,24 +117,26 @@ Next let's look at the `get_data_config_template()` method, which determines wha
 ```python
 @staticmethod
 def get_data_config_template() -> list[DataLabelConfigTemplate]:
-    return DataLabelConfigTemplate(
-        data_level=DataLevel.SENSOR,
-        unit_tag_templates=[
-            UnitTag.from_string("altenburg1:discharge"),
-            UnitTag.from_string("eschweiler:discharge"),
-            UnitTag.from_string("herzogenrath1:discharge"),
-            UnitTag.from_string("juelich:discharge"),
-            UnitTag.from_string("stah:discharge"),
-            UnitTag.from_string("evap:evaporation"),
-            UnitTag.from_string("middenroer:precipitation"),
-            UnitTag.from_string("urft:precipitation"),
-        ]
-    )
+    return [
+        DataLabelConfigTemplate(
+            data_level=DataLevel.SENSOR,
+            unit_tag_templates=[
+                UnitTag.from_string("altenburg1:disc"),
+                UnitTag.from_string("eschweiler:disc"),
+                UnitTag.from_string("herzogenrath1:disc"),
+                UnitTag.from_string("juelich:disc"),
+                UnitTag.from_string("stah:disc"),
+                UnitTag.from_string("evap:evap"),
+                UnitTag.from_string("middenroer:prec"),
+                UnitTag.from_string("urft:prec"),
+            ],
+        ),
+    ]
 ```
 
-There are again two possible implementations, either with `list[DataLabelConfigTemplate]` or `list[UnitTag]`. For illustration purposes we will show both. `UnitTag`, as used in the implementation above, we have already seen in the previous method. However, there is an alternative way to implement it, using the `from_string` class method, where we specify only the `unit_tag`, which is a combination between `unit_code` and `tag`, separated by a colon: `"{unit_code}:{tag}"`.
+There are again two possible implementations, both with `list[DataLabelConfigTemplate]` as output. For illustration purposes we will show both. In the first (shown above) a list of `UnitTag` objects, is passed to the `unit_tag_templates` attribute. We have seen this in the previous method, but there is an alternative way to implement it, using the `from_string` class method. We specify only the `unit_tag`, which is a combination between `unit_code` and `tag`, separated by a colon: `"{unit_code}:{tag}"`. Note that `DataLevel` is assigned arbitrarily as `SENSOR` for now - once it becomes clear what data we handle within the `DARROW` project we can update this.
 
-In the below implementation we use `DataLabelConfigTemplate` instead of `UnitTag`. This implementation is more complex, but takes advantage of relative paths in our __rooted tree__. The first `DataLabelConfigTemplate` selects all units following the path `RelativeType.PARENTS --> RelativeType.CHILDREN` starting from the _target_ unit. In this case, we select all units on the same level as the target. We need two entries of `DataLabelConfigTemplate`, because the first has datalevel `SENSOR`, while the second has datalevel `WEATHER`. A `DataLevel` distinction is made, because datalevels can have different properties when retrieving the data. This is not obvious when loading the data into your model, but does matter for the backend / data retrieval process. It is probably best to check with RHDHV which datalevels you should use for which data source.
+In the below implementation we use `UnitTagTemplate` instead of `UnitTag`. This implementation is more complex, but takes advantage of relative paths in our __rooted tree__. The first `DataLabelConfigTemplate` selects all units following the path `RelativeType.PARENTS --> RelativeType.CHILDREN` starting from the _target_ unit. In this case, we select all units on the same level as the target. We need two entries of `DataLabelConfigTemplate`, because the first has datalevel `SENSOR`, while the second has datalevel `WEATHER`. A `DataLevel` distinction is made, because datalevels can have different properties when retrieving the data. This is not obvious when loading the data into your model, but does matter for the backend / data retrieval process. It is probably best to check with RHDHV which datalevels you should use for which data source.
 
 ```python
 @staticmethod
