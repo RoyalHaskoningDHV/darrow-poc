@@ -148,7 +148,7 @@ class ExecutorMock:
 
         input_data = self.get_training_data(model, infra_config)
         preprocessed_data = model.preprocess(input_data)
-        performance_value, _ = model.train(preprocessed_data)  # TODO (Team): discuss what save_performance stands for
+        performance_value, _ = model.train(preprocessed_data)
 
         self.write_results(model, performance_value)
 
