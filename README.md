@@ -112,17 +112,20 @@ Next let's look at the `get_data_config_template()` method, which determines wha
 
 ```python
 @staticmethod
-def get_data_config_template() -> list[DataLabelConfigTemplate] | list[UnitTag]:
-    return [
-        UnitTag.from_string("altenburg1:discharge"),
-        UnitTag.from_string("eschweiler:discharge"),
-        UnitTag.from_string("herzogenrath1:discharge"),
-        UnitTag.from_string("juelich:discharge"),
-        UnitTag.from_string("stah:discharge"),
-        UnitTag.from_string("evap:evaporation"),
-        UnitTag.from_string("middenroer:precipitation"),
-        UnitTag.from_string("urft:precipitation"),
-    ]
+def get_data_config_template() -> list[DataLabelConfigTemplate]:
+    return DataLabelConfigTemplate(
+        data_level=DataLevel.SENSOR,
+        unit_tag_templates=[
+            UnitTag.from_string("altenburg1:discharge"),
+            UnitTag.from_string("eschweiler:discharge"),
+            UnitTag.from_string("herzogenrath1:discharge"),
+            UnitTag.from_string("juelich:discharge"),
+            UnitTag.from_string("stah:discharge"),
+            UnitTag.from_string("evap:evaporation"),
+            UnitTag.from_string("middenroer:precipitation"),
+            UnitTag.from_string("urft:precipitation"),
+        ]
+    )
 ```
 
 There are again two possible implementations, either with `list[DataLabelConfigTemplate]` or `list[UnitTag]`. For illustration purposes we will show both. `UnitTag`, as used in the implementation above, we have already seen in the previous method. However, there is an alternative way to implement it, using the `from_string` class method, where we specify only the `unit_tag`, which is a combination between `unit_code` and `tag`, separated by a colon: `"{unit_code}:{tag}"`.
@@ -131,7 +134,7 @@ In the below implementation we use `DataLabelConfigTemplate` instead of `UnitTag
 
 ```python
 @staticmethod
-def get_data_config_template() -> list[DataLabelConfigTemplate] | list[UnitTag]:
+def get_data_config_template() -> list[DataLabelConfigTemplate]:
     return [
         DataLabelConfigTemplate(
             data_level=DataLevel.SENSOR,
@@ -205,8 +208,10 @@ def dump(self, foldername: PathLike, filename: str) -> None:
         pickle.dump(self, f)
     return None
 
-@classmethod
-def load(cls, foldername: PathLike, filename: str) -> Callable:
+@staticmethod
+def load(
+    foldername: PathLike, filename: str, configuration: Configuration, logger: MetaDataLogger
+) -> ModelInterfaceV4:
     with open(Path(foldername) / (filename + ".pkl"), "rb") as f:
         model = pickle.load(f)
     return model

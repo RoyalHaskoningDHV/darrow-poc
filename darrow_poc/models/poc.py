@@ -49,28 +49,31 @@ class POCAnomaly:
         return UnitTag(Unit("STAH", "DISCHARGE_STATION", True), Tag("DISCHARGE"))
 
     @staticmethod
-    def get_data_config_template() -> list[DataLabelConfigTemplate] | list[UnitTag]:
+    def get_data_config_template() -> list[DataLabelConfigTemplate]:
         """The specification of data needed to train and predict with the model.
 
         NOTE:
-        Using DataLabelConfigTemplate is more complicated, but allows refering to relative relationships
-        between units (e.g. selecting all children of the target). Specifying UnitTags directly is simpler,
-        but requires you to know the exact units necessary for the model.
+        Using DataLabelConfigTemplate with UnitTagTemplates is more complicated, but allows refering to
+        relative relationships between units (e.g. selecting all children of the target). Specifying
+        UnitTags directly is simpler, but requires you to know the exact units necessary for the model.
 
         Result:
-            list[DataLabelConfigTemplate] | list[UnitTag]: The data needed to train and predict with the model,
+            list[DataLabelConfigTemplate]: The data needed to train and predict with the model,
                 either as template or as list of literals.
         """
-        return [
-            UnitTag.from_string("altenburg1:disc"),
-            UnitTag.from_string("eschweiler:disc"),
-            UnitTag.from_string("herzogenrath1:disc"),
-            UnitTag.from_string("juelich:disc"),
-            UnitTag.from_string("stah:disc"),
-            UnitTag.from_string("evap:evap"),
-            UnitTag.from_string("middenroer:prec"),
-            UnitTag.from_string("urft:prec"),
-        ]
+        return DataLabelConfigTemplate(
+            data_level=DataLevel.SENSOR,
+            unit_tag_templates=[
+                UnitTag.from_string("altenburg1:disc"),
+                UnitTag.from_string("eschweiler:disc"),
+                UnitTag.from_string("herzogenrath1:disc"),
+                UnitTag.from_string("juelich:disc"),
+                UnitTag.from_string("stah:disc"),
+                UnitTag.from_string("evap:evap"),
+                UnitTag.from_string("middenroer:prec"),
+                UnitTag.from_string("urft:prec"),
+            ],
+        )
 
     @staticmethod
     def get_result_template() -> UnitTagTemplate | UnitTag:
@@ -200,8 +203,10 @@ class POCAnomaly:
         with open(Path(foldername) / (filename + ".pkl"), "wb") as f:
             pickle.dump(self, f)
 
-    @classmethod
-    def load(cls, foldername: PathLike, filename: str) -> ModelInterfaceV4:
+    @staticmethod
+    def load(
+        foldername: PathLike, filename: str, configuration: Configuration, logger: MetaDataLogger
+    ) -> ModelInterfaceV4:
         """
         Reads the following files:
         * filename.pkl
@@ -219,5 +224,6 @@ class POCAnomaly:
         """
         with open(Path(foldername) / (filename + ".pkl"), "rb") as f:
             model = pickle.load(f)
-
+        model.configuration = configuration
+        model.logger = logger
         return model
