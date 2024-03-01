@@ -26,7 +26,6 @@ class TestModelWithLocalExecutor(unittest.TestCase):
         )
         executor = ExecutorMock(config)
         executor.run_full_flow()
-        assert True
 
 
 if __name__ == "__main__":

@@ -215,7 +215,9 @@ def dump(self, foldername: PathLike, filename: str) -> None:
     return None
 
 @classmethod
-def load(cls, foldername: PathLike, filename: str) -> Callable:
+def load(
+    foldername: PathLike, filename: str, configuration: Configuration, logger: MetaDataLogger
+) -> ModelInterfaceV4:
     with open(Path(foldername) / (filename + ".pkl"), "rb") as f:
         model = pickle.load(f)
     return model

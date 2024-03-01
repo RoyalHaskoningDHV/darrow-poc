@@ -127,18 +127,19 @@ class ExecutorMock:
         self.metadata_logger.reset_cache()
         model.dump(self.local_config.model_path, self.local_config.model_name)
 
-    def _postprocess_model_results(self, model: ModelInterfaceV4):
-        model.base_features = None
-        model.performance_value = None
+    def _postprocess_model_results(self, model: ModelInterfaceV4, performance_value: float):
+        # Store base features and performance value. Base features are needed to trigger predictions
+        # if DataLabelConfigTemplate contains templates and not specific units
+        model.base_features
 
-    def write_results(self, model: ModelInterfaceV4):
+    def write_results(self, model: ModelInterfaceV4, performance_value: float):
         """Save model to file.
 
         Args:
             model (ModelInterfaceV4): _description_
         """
         self._write_model(model=model)
-        self._postprocess_model_results(model=model)
+        self._postprocess_model_results(model=model, performance_value=performance_value)
 
     def run_train_flow(self):
         """Run training flow and cache trained model"""
@@ -147,9 +148,9 @@ class ExecutorMock:
 
         input_data = self.get_training_data(model, infra_config)
         preprocessed_data = model.preprocess(input_data)
-        model.train(preprocessed_data, save_performance=True)  # TODO (Team): discuss what save_performance stands for
+        performance_value, _ = model.train(preprocessed_data)  # TODO (Team): discuss what save_performance stands for
 
-        self.write_results(model)
+        self.write_results(model, performance_value)
 
     def load_model(
         self, model_class: ModelInterfaceV4, infra_config: Configuration, metadata_logger: MetaDataLogger
@@ -180,25 +181,27 @@ class ExecutorMock:
         long_data = pd.read_parquet(self.local_config.prediction_data_path)
         return InputData.from_long_df(long_data)
 
-    def write_predictions(self, predictions: pd.DataFrame):
+    def write_predictions(self, predictions: list[pd.DataFrame]):
         """Write predictions to local path. When running the actual infrastructure,
         predictions are uploaded to the azure data lake.
 
         Args:
             predictions (pd.DataFrame): Predictions made by ML Model
         """
-        predictions.to_parquet(self.local_config.predictions_path)
+        for prediction in predictions:
+            # Predictions are overwritten in the mock for demonstration purposes
+            prediction.to_parquet(self.local_config.predictions_path)
 
     def run_predict_flow(self):
         """Run predict flow"""
         infra_config = InfraConfigurationMock()
-        metadata_logger = MetaDataLogger()
+        metadata_logger = MetaDataLogger()  # New instance of the logger, information from training is not available
         model: ModelInterfaceV4 = self.load_model(self.local_config.model, infra_config, metadata_logger)
 
         input_data = self.get_prediction_data()
         preprocessed_data = model.preprocess(input_data)
         predictions, _ = model.predict(preprocessed_data)
-        self.write_predictions(pd.concat(predictions))
+        self.write_predictions(predictions)
 
     def run_full_flow(self):
         """Run both train and predict flows"""

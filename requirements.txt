@@ -1,4 +1,5 @@
 annotation-protocol
+twinn-ml-interface
 dill
 geopandas
 matplotlib
