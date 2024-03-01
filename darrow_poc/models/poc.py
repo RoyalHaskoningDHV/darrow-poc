@@ -217,6 +217,8 @@ class POCAnomaly:
         Args:
             foldername (PathLike): configurable folder name
             filename (str): name of the file
+            configuration (Configuration): an API-like object to retrieve configuration.
+            logger (MetaDataLogger): A MetaDataLogger object to write logs to MLflow later.
 
         Returns:
             Model class with everything (except data) contained within to call the
