@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 from darrow_poc.models.poc import POCAnomaly
-from darrow_poc.mocks import LocalConfig, ExecutorMock
+from twinn_ml_interface.mocks import LocalConfig, ExecutorMock, ConfigurationMock
 
 import unittest
 
@@ -24,7 +24,8 @@ class TestModelWithLocalExecutor(unittest.TestCase):
             "poc_model",
             BASE_DIR / "output/predictions/predictions.parquet",
         )
-        executor = ExecutorMock(config)
+        infra_config = ConfigurationMock("stah:discharge", "", {}, [], [])
+        executor = ExecutorMock(config, infra_config)
         executor.run_full_flow()
 
 
