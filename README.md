@@ -266,10 +266,10 @@ class POCAnomaly(ModelInterfaceV4):
 
 `model_type_name` is simply the name of our model and can be any descriptive string. `model_category` has to be one of the possible levels of the `ModelCategory` Enum. The last two entries are optional and we assign default values as `None`. In our example we do not need them.
 
-### Testing compliance with the data contract
+## Testing compliance with the data contract
 
 Since all the attributes and methods from the __Protocol__ `ModelInterfaceV4` are implemented, including the correct type-hints / annotations, our `POCAnomaly` class passes the `isinstance` check with `ModelInterfaceV4` (see `tests/test_interface.py`).
 
-## Mock Executor
+### Visualizing the train and predict process in our infrastructure
 
-The `executor` class takes care of running the model either for training or predictions on the `darrow-ml-platform` infrastructure. Here, we implemented a mock executor to emulate that behaviour to some extent, which hopefully makes it a little clearer in what context the model class (in this case `POCAnomaly`) will be used. In addition, you can run additional tests with this executor (`tests/test_executor.py`) that actually perform training and predicting.
+In our infrastructure, the `executor` class takes care of running the model either for training or predictions on the `darrow-ml-platform` infrastructure. If a model is compliant with the model interface, you can visualize how it would run in our infrastructure using the MockExecutor in [twinn-ml-interface](https://github.com/RoyalHaskoningDHV/twinn-ml-interface). For demonstration purposes, you will find in this repository the `TestModelWithLocalExecutor` that you can run on debug mode, which hopefully makes it a little clearer in what context the model class (in this case `POCAnomaly`) will be used. You can find more information about the mock executors and the steps that they follow in [twinn-ml-interface](https://github.com/RoyalHaskoningDHV/twinn-ml-interface)
