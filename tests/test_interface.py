@@ -9,7 +9,7 @@ import logging
 
 
 logging.basicConfig()
-logging.basicConfig(level=logging.DEBUG)
+logging.getLogger().setLevel(logging.DEBUG)
 
 
 class TestModelFollowsInterface(unittest.TestCase):
