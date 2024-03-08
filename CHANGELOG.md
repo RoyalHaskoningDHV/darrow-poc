@@ -1,5 +1,8 @@
 # Changelog
 
+## Version 0.1.6
+- Added github action pipelines for publishing to `testpypi` and `pypi`.
+
 ## Version 0.1.5
 - Moved mocks to [twinn-ml-interface](https://github.com/RoyalHaskoningDHV/twinn-ml-interface)
 
