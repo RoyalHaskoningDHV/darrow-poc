@@ -1,5 +1,8 @@
 # Changelog
 
+## Version 0.1.7
+- add linting and testing github actions pipeline `validate_pipeline.yml`.
+
 ## Version 0.1.6
 - Added github action pipelines for publishing to `testpypi` and `pypi`.
 - Remove old publishing pipeline to `SAM` artifacts.

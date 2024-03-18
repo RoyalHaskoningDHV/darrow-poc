@@ -4,7 +4,7 @@ Documentation and code for onboarding a timeseries machine learning model to the
 
 Author: Royal HaskoningDHV
 
-Email: ruud.kassing@rhdhv.com, jesse.de.ruijter@rhdhv.com, miguel.hernandez@rhdhv.com, steffen.burgers@rhdhv.com, pierpaolo.lucarelli@rhdhv.com
+Email: ruud.kassing@rhdhv.com, miguel.hernandez@rhdhv.com, steffen.burgers@rhdhv.com, pierpaolo.lucarelli@rhdhv.com
 
 ## Hierarchy data model
 
