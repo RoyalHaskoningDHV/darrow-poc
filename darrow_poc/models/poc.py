@@ -194,7 +194,7 @@ class POCAnomaly:
         predictions = model.predict(X, target_channel)
         anomalies = get_anomalies(predictions, X, target_channel)
 
-        return [pd.DataFrame({target_channel: anomalies})], None
+        return [pd.DataFrame({target_channel: anomalies}, index=X.index)], None
 
     def dump(self, foldername: PathLike, filename: str) -> None:
         """
