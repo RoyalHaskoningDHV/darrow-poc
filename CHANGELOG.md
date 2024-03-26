@@ -2,6 +2,7 @@
 
 ## Version 0.1.7
 - add linting and testing github actions pipeline `validate_pipeline.yml`.
+- bugfix: Add datetime index to predictions dataframe.
 
 ## Version 0.1.6
 - Added github action pipelines for publishing to `testpypi` and `pypi`.
