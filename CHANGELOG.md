@@ -1,5 +1,8 @@
 # Changelog
 
+## Version 0.1.8
+- Remove hardcoded train date
+
 ## Version 0.1.7
 - add linting and testing github actions pipeline `validate_pipeline.yml`.
 - bugfix: Add datetime index to predictions dataframe.
