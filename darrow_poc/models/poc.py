@@ -166,7 +166,7 @@ class POCAnomaly:
             model_type="lasso",
             n_features=5,
             use_precipitation_features=False,
-            training_end_date="2010-01-04 00:00:00",
+            training_end_date=((input_data.max_datetime - input_data.min_datetime) // 2) + input_data.min_datetime,
         )
         _, num_obs, _, r2_by_target = validator.fit_and_evaluate(str(self.target))
         r2_by_missing_sensor = validator._flatten_output(r2_by_target, "r2")
